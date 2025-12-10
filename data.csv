@@ -1,0 +1,9 @@
+Role;Id;Sex;Notes;Dead;Condition
+Patient;"John";M;"The Patient";0;"None"
+Parent("John");"Bob";M;"Father";1;"Heart Disease"
+Parent("John");"Alice";F;"Mother";0;"Diabetes"
+Partner("John");"Sarah";F;"Wife";0;"None"
+Son("John");"Mike";M;"Son";0;"Asthma"
+Sibling("John");"Emily";F;"Sister";0;"None"
+Parent("Alice");"Grandpa";M;"Maternal Grandfather";1;"None"
+Parent("Alice");"Grandma";F;"Maternal Grandmother";1;"Diabetes"
