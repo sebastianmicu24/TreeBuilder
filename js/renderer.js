@@ -70,9 +70,9 @@ window.showPatternPicker = function(condition, targetElement) {
                 d3.select(this).style("opacity", "1");
             });
 
-        // Add pattern image
+        // Add pattern image (using data URI)
         patternItem.append("img")
-            .attr("src", patternInfo.file)
+            .attr("src", `data:image/png;base64,${patternInfo.base64}`)
             .attr("alt", patternInfo.name)
             .style("width", "100%")
             .style("height", "100%")
