@@ -114,8 +114,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize settings and modes
     window.grayscaleMode = true; // Set grayscale as default
     document.getElementById('grayscaleMode').checked = true; // Update UI
-    window.showNames = true;
-    window.showNotes = true;
+    window.showNames = false;
+    window.showNotes = false;
     window.showConditions = true;
     updateSettings();
 
