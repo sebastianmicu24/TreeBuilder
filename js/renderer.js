@@ -623,26 +623,81 @@ function renderGenogram(data) {
                 .style("stroke", "#000");
         }
 
+        // Arrow pointing to bottom-left corner at 45° for patient/proband
         if (node.isPatient) {
-            // Add a double border or indicator
-            // For simplicity, let's add an arrow or text "P"
-            el.append("text")
-                .attr("x", -node.width/2 - textDist)
-                .attr("y", 5)
-                .text("P ➔")
-                .style("font-size", (fontSize + 2) + "px")
-                .style("font-weight", "bold")
-                .style("text-anchor", "end")
-                .style("font-family", fontFamily);
+            const arrowLength = 30;
+            // Bottom-left corner of the node
+            const cornerX = -node.width/2-15;
+            const cornerY = node.height/2+15;
+            
+            // 45-degree arrow extending down and to the left from the corner
+            const startX = cornerX - arrowLength * Math.cos(Math.PI/4); // extend left
+            const startY = cornerY + arrowLength * Math.sin(Math.PI/4); // extend down
+            
+            // Draw arrow line pointing TO the corner
+            el.append("line")
+                .attr("x1", startX)
+                .attr("y1", startY)
+                .attr("x2", cornerX)
+                .attr("y2", cornerY)
+                .attr("stroke", "#000")
+                .attr("stroke-width", 2)
+                .attr("marker-end", "url(#arrowhead)");
+            
+            // Add arrowhead marker if not already defined
+            const defs = d3.select("#genogram defs");
+            if (defs.select("#arrowhead").empty()) {
+                defs.append("marker")
+                    .attr("id", "arrowhead")
+                    .attr("markerWidth", 10)
+                    .attr("markerHeight", 10)
+                    .attr("refX", 9)
+                    .attr("refY", 3)
+                    .attr("orient", "auto")
+                    .append("polygon")
+                    .attr("points", "0 0, 10 3, 0 6")
+                    .attr("fill", "#000");
+            }
         }
 
-        // Display Notes to the right with wrapping
-        if (node.notes && node.notes !== "None" && node.notes !== "") {
+        // Collect items to display with vertical offset management
+        let currentYOffset = 0;
+        const lineHeight = fontSize * 1.2;
+        const xRight = node.width/2 + textDist;
+        const xLeft = -node.width/2 - textDist;
+        
+        // Display Name (ID) if enabled
+        if (window.showNames && node.idText) {
+            el.append("text")
+                .attr("x", xLeft)
+                .attr("y", currentYOffset)
+                .text(node.idText)
+                .style("font-size", fontSize + "px")
+                .style("font-family", fontFamily)
+                .style("font-weight", "bold")
+                .style("text-anchor", "end");
+            currentYOffset += lineHeight;
+        }
+        
+        // Display Condition if enabled
+        if (window.showConditions && node.condition && node.condition !== 'None' && node.condition !== '') {
+            el.append("text")
+                .attr("x", xLeft)
+                .attr("y", currentYOffset)
+                .text(node.condition)
+                .style("font-size", fontSize + "px")
+                .style("font-family", fontFamily)
+                .style("text-anchor", "end")
+                .style("fill", "#e11d48");
+            currentYOffset += lineHeight;
+        }
+
+        // Display Notes to the right with wrapping if enabled
+        if (window.showNotes && node.notes && node.notes !== "None" && node.notes !== "") {
             const words = node.notes.split(' ');
             let line = '';
             let lineNumber = 0;
-            const lineHeight = fontSize * 1.2;
-            const x = node.width/2 + textDist;
+            const notesYStart = 0; // Start at vertical center
             
             const textGroup = el.append("g");
             
@@ -650,7 +705,7 @@ function renderGenogram(data) {
                 const testLine = line + (line ? ' ' : '') + word;
                 // Create temporary text to measure width
                 const tempText = textGroup.append("text")
-                    .attr("x", x)
+                    .attr("x", xRight)
                     .attr("y", 0)
                     .text(testLine)
                     .style("font-size", fontSize + "px")
@@ -663,8 +718,8 @@ function renderGenogram(data) {
                 if (textWidth > noteMaxWidth && line !== '') {
                     // Add current line
                     textGroup.append("text")
-                        .attr("x", x)
-                        .attr("y", -lineHeight + lineNumber * lineHeight)
+                        .attr("x", xRight)
+                        .attr("y", notesYStart + lineNumber * lineHeight)
                         .text(line)
                         .style("font-size", fontSize + "px")
                         .style("font-family", fontFamily)
@@ -678,8 +733,8 @@ function renderGenogram(data) {
                 // Add the last line
                 if (i === words.length - 1) {
                     textGroup.append("text")
-                        .attr("x", x)
-                        .attr("y", -lineHeight + lineNumber * lineHeight)
+                        .attr("x", xRight)
+                        .attr("y", notesYStart + lineNumber * lineHeight)
                         .text(line)
                         .style("font-size", fontSize + "px")
                         .style("font-family", fontFamily)
@@ -702,12 +757,39 @@ function renderGenogram(data) {
 
     // Center the graph
     const svgWidth = svg.node().getBoundingClientRect().width;
+    const svgHeight = svg.node().getBoundingClientRect().height;
     const xCenterOffset = (svgWidth - g.graph().width) / 2;
-    svgGroup.attr("transform", "translate(" + xCenterOffset + ", 20)");
+    const yCenterOffset = 20;
     
-    // Enable Zoom
-    const zoom = d3.zoom().on("zoom", function() {
-        svgGroup.attr("transform", d3.event.transform);
-    });
-    svg.call(zoom);
+    // Initialize transform for centering
+    const initialTransform = d3.zoomIdentity.translate(xCenterOffset, yCenterOffset);
+    svgGroup.attr("transform", initialTransform);
+    
+    // Enable Zoom with better settings
+    const zoom = d3.zoom()
+        .scaleExtent([0.1, 10]) // Allow zoom from 10% to 1000%
+        .on("zoom", function() {
+            svgGroup.attr("transform", d3.event.transform);
+            updateZoomLevel(d3.event.transform.k);
+        });
+    
+    svg.call(zoom)
+        .call(zoom.transform, initialTransform) // Set initial transform
+        .on("dblclick.zoom", null); // Disable double-click zoom
+    
+    // Store zoom behavior for button controls
+    window.currentZoom = zoom;
+    window.currentSvg = svg;
+    window.currentSvgGroup = svgGroup;
+    window.initialTransform = initialTransform;
+    
+    // Initialize zoom level display
+    updateZoomLevel(1);
+}
+
+function updateZoomLevel(scale) {
+    const zoomLevelDiv = document.getElementById('zoomLevel');
+    if (zoomLevelDiv) {
+        zoomLevelDiv.textContent = Math.round(scale * 100) + '%';
+    }
 }

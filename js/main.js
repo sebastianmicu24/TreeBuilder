@@ -70,9 +70,53 @@ document.addEventListener('DOMContentLoaded', function() {
         updateGraph();
     });
 
+    // Handle Display Options
+    document.getElementById('showNames').addEventListener('change', function(e) {
+        window.showNames = e.target.checked;
+        updateGraph();
+    });
+
+    document.getElementById('showNotes').addEventListener('change', function(e) {
+        window.showNotes = e.target.checked;
+        updateGraph();
+    });
+
+    document.getElementById('showConditions').addEventListener('change', function(e) {
+        window.showConditions = e.target.checked;
+        updateGraph();
+    });
+
+    // Handle Zoom Controls
+    document.getElementById('zoomIn').addEventListener('click', function() {
+        if (window.currentZoom && window.currentSvg) {
+            window.currentSvg.transition().duration(300).call(
+                window.currentZoom.scaleBy, 1.3
+            );
+        }
+    });
+
+    document.getElementById('zoomOut').addEventListener('click', function() {
+        if (window.currentZoom && window.currentSvg) {
+            window.currentSvg.transition().duration(300).call(
+                window.currentZoom.scaleBy, 0.77
+            );
+        }
+    });
+
+    document.getElementById('zoomReset').addEventListener('click', function() {
+        if (window.currentZoom && window.currentSvg && window.initialTransform) {
+            window.currentSvg.transition().duration(500).call(
+                window.currentZoom.transform, window.initialTransform
+            );
+        }
+    });
+
     // Initialize settings and modes
     window.grayscaleMode = true; // Set grayscale as default
     document.getElementById('grayscaleMode').checked = true; // Update UI
+    window.showNames = true;
+    window.showNotes = true;
+    window.showConditions = true;
     updateSettings();
 
     // Handle Sidebar Resizing

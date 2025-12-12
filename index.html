@@ -39,17 +39,32 @@
                         <button id="exportBtn" class="btn secondary full-width">Export PNG</button>
                     </div>
                 </section>
-
-                <section class="panel collapsible collapsed">
-                    <h2>Display Mode</h2>
-                    <div class="control-group">
-                        <label class="toggle-switch">
-                            <span class="toggle-label-left">Colors</span>
-                            <input type="checkbox" id="grayscaleMode">
-                            <span class="toggle-slider"></span>
-                            <span class="toggle-label-right">Grayscale</span>
-                        </label>
-                    </div>
+<section class="panel collapsible collapsed">
+    <h2>Display Mode</h2>
+    <div class="control-group">
+        <label class="toggle-switch">
+            <span class="toggle-label-left">Colors</span>
+            <input type="checkbox" id="grayscaleMode">
+            <span class="toggle-slider"></span>
+            <span class="toggle-label-right">Grayscale</span>
+        </label>
+    </div>
+    <div class="display-options" id="display">
+        <span>Show:<br></span>
+        <label class="checkbox-label">
+            <input type="checkbox" id="showNames" checked>
+            <span>Names</span>
+        </label>
+        <label class="checkbox-label">
+            <input type="checkbox" id="showNotes" checked>
+            <span>Notes</span>
+        </label>
+        <label class="checkbox-label">
+            <input type="checkbox" id="showConditions" checked>
+            <span>Conditions</span>
+        </label>
+    </div>
+</section>
                 </section>
 
                 <section class="panel collapsible collapsed">
@@ -98,7 +113,6 @@
                 <section class="panel collapsible collapsed flex-grow">
                     <div class="panel-header">
                         <h2>Data Editor</h2>
-                        <button id="updateBtn" class="btn primary small">Update Graph</button>
                     </div>
                     <div class="table-wrapper">
                         <table id="dataTable">
@@ -120,6 +134,8 @@
                     </div>
                     <button id="addRowBtn" class="btn full-width">+ Add Row</button>
                 </section>
+                
+                <button id="updateBtn" class="btn primary full-width">Update Graph</button>
             </div>
         </aside>
         
@@ -127,6 +143,12 @@
 
         <main class="main-content">
             <div id="legend" class="legend-overlay"></div>
+            <div class="zoom-controls">
+                <button id="zoomIn" class="zoom-btn" title="Zoom In">+</button>
+                <button id="zoomReset" class="zoom-btn" title="Reset Zoom">⊙</button>
+                <button id="zoomOut" class="zoom-btn" title="Zoom Out">−</button>
+                <div id="zoomLevel" class="zoom-level">100%</div>
+            </div>
             <div class="canvas-container">
                 <svg id="genogram"></svg>
             </div>
