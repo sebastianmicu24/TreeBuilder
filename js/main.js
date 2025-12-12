@@ -22,17 +22,36 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Handle Add Row
     document.getElementById('addRowBtn').addEventListener('click', function() {
-        addTableRow(['', '', '', '', '0', 'None', 'N/A']);
+        addTableRow(['', '', '', '', '0', 'None']);
+    });
+
+    // Handle Tree Presets
+    document.getElementById('presetPatientBtn').addEventListener('click', function() {
+        loadPresetTree('patient');
+    });
+    
+    document.getElementById('presetGrandparentsBtn').addEventListener('click', function() {
+        loadPresetTree('grandparents');
+    });
+    
+    document.getElementById('presetGreatGrandparentsBtn').addEventListener('click', function() {
+        loadPresetTree('greatgrandparents');
     });
 
     // Handle Settings Changes
-    const settingsInputs = ['nodeSize', 'rankSep', 'nodeSep', 'fontSize', 'textDist'];
+    const settingsInputs = ['nodeSize', 'rankSep', 'nodeSep', 'fontSize', 'textDist', 'noteMaxWidth'];
     settingsInputs.forEach(id => {
         document.getElementById(id).addEventListener('input', function(e) {
             document.getElementById(id + 'Val').textContent = e.target.value;
             updateSettings();
             updateGraph();
         });
+    });
+
+    // Handle Font Family Change
+    document.getElementById('fontFamily').addEventListener('change', function(e) {
+        updateSettings();
+        updateGraph();
     });
 
     // Handle Export PNG
@@ -52,7 +71,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Initialize settings and modes
-    window.grayscaleMode = false;
+    window.grayscaleMode = true; // Set grayscale as default
+    document.getElementById('grayscaleMode').checked = true; // Update UI
     updateSettings();
 
     // Handle Sidebar Resizing
@@ -96,6 +116,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Handle Collapsible Panels
+    document.querySelectorAll('.panel.collapsible > h2, .panel.collapsible > .panel-header').forEach(header => {
+        header.addEventListener('click', function() {
+            this.parentElement.classList.toggle('collapsed');
+        });
+    });
+
     // Try to load default data.csv (will fail if CORS is blocked, e.g. file:// protocol)
     fetch("data.csv")
         .then(response => {
@@ -108,9 +135,9 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(error => {
             console.log("Could not load default data.csv (likely CORS or file not found). Please use file upload.");
             // Initialize empty table if load fails
-            addTableRow(['Patient', 'John', 'M', 'Patient', '0', 'None', 'N/A']);
-            addTableRow(['Partner("John")', 'Mary', 'F', 'Wife', '0', 'None', 'N/A']);
-            addTableRow(['Son("John")', 'Bob', 'M', 'Son', '0', 'None', 'N/A']);
+            addTableRow(['Patient', 'John', 'M', 'Patient', '0', 'None']);
+            addTableRow(['Partner("John")', 'Mary', 'F', 'Wife', '0', 'None']);
+            addTableRow(['Child("John")', 'Bob', 'M', 'Son', '0', 'None']);
         });
 });
 
@@ -133,8 +160,7 @@ function populateTable(individuals) {
             ind.sex,
             ind.notes,
             ind.dead ? '1' : '0',
-            ind.condition,
-            ind.value ? ind.value.toFixed(4) : 'N/A'
+            ind.condition
         ]);
     });
 }
@@ -143,17 +169,10 @@ function addTableRow(data) {
     const tbody = document.querySelector('#dataTable tbody');
     const tr = document.createElement('tr');
     
-    // Create cells - last cell (value) should be read-only
+    // Create cells - all editable
     data.forEach((text, index) => {
         const td = document.createElement('td');
-        // Make value column (index 6) read-only
-        if (index === 6) {
-            td.contentEditable = false;
-            td.style.backgroundColor = '#f8fafc';
-            td.style.color = '#64748b';
-        } else {
-            td.contentEditable = true;
-        }
+        td.contentEditable = true;
         td.textContent = text;
         tr.appendChild(td);
     });
@@ -179,7 +198,9 @@ function updateSettings() {
         rankSep: document.getElementById('rankSep').value,
         nodeSep: document.getElementById('nodeSep').value,
         fontSize: document.getElementById('fontSize').value,
-        textDist: document.getElementById('textDist').value
+        textDist: document.getElementById('textDist').value,
+        fontFamily: document.getElementById('fontFamily').value,
+        noteMaxWidth: document.getElementById('noteMaxWidth').value
     };
 }
 
@@ -207,12 +228,15 @@ function exportToPng() {
     let legendHeight = 0;
     const legendWidth = 200; // Estimated width
     
+    // Get current font family setting
+    const exportFontFamily = window.genogramSettings ? window.genogramSettings.fontFamily : 'Inter';
+    
     // Title
     const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
     title.textContent = "Clinical Genogram";
     title.setAttribute("x", 0);
     title.setAttribute("y", 0);
-    title.setAttribute("font-family", "sans-serif");
+    title.setAttribute("font-family", exportFontFamily);
     title.setAttribute("font-size", "18px");
     title.setAttribute("font-weight", "bold");
     title.setAttribute("fill", "#1e293b");
@@ -239,7 +263,7 @@ function exportToPng() {
         textEl.textContent = text;
         textEl.setAttribute("x", 20);
         textEl.setAttribute("y", yOffset);
-        textEl.setAttribute("font-family", "sans-serif");
+        textEl.setAttribute("font-family", exportFontFamily);
         textEl.setAttribute("font-size", "12px");
         textEl.setAttribute("fill", "#333");
         
@@ -329,7 +353,6 @@ function getTableData() {
         const notes = cells[3].textContent.trim();
         const dead = cells[4].textContent.trim();
         const condition = cells[5].textContent.trim();
-        // Value is in cells[6] but we don't read it - it will be recalculated
 
         if (!id) return; // Skip empty rows
 
@@ -466,7 +489,61 @@ function addRelated(relationType) {
             break;
     }
     
-    addTableRow([roleStr, newId, sex, notes, '0', 'None', 'N/A']);
+    addTableRow([roleStr, newId, sex, notes, '0', 'None']);
     closeEditModal();
+    updateGraph();
+}
+
+function loadPresetTree(presetType) {
+    const tbody = document.querySelector('#dataTable tbody');
+    tbody.innerHTML = '';
+    
+    if (presetType === 'patient') {
+        // Only patient
+        addTableRow(['Patient', 'Patient', 'M', 'Proband', '0', 'None']);
+    } else if (presetType === 'grandparents') {
+        // Patient, parents, and 4 grandparents
+        addTableRow(['Patient', 'Patient', 'M', 'Proband', '0', 'None']);
+        
+        // Parents
+        addTableRow(['Parent("Patient")', 'Father', 'M', 'Father', '0', 'None']);
+        addTableRow(['Parent("Patient")', 'Mother', 'F', 'Mother', '0', 'None']);
+        
+        // Paternal grandparents
+        addTableRow(['Parent("Father")', 'GF_P', 'M', 'Paternal Grandfather', '0', 'None']);
+        addTableRow(['Parent("Father")', 'GM_P', 'F', 'Paternal Grandmother', '0', 'None']);
+        
+        // Maternal grandparents
+        addTableRow(['Parent("Mother")', 'GF_M', 'M', 'Maternal Grandfather', '0', 'None']);
+        addTableRow(['Parent("Mother")', 'GM_M', 'F', 'Maternal Grandmother', '0', 'None']);
+    } else if (presetType === 'greatgrandparents') {
+        // Patient, parents, 4 grandparents, and 8 great-grandparents
+        addTableRow(['Patient', 'Patient', 'M', 'Proband', '0', 'None']);
+        
+        // Parents
+        addTableRow(['Parent("Patient")', 'Father', 'M', 'Father', '0', 'None']);
+        addTableRow(['Parent("Patient")', 'Mother', 'F', 'Mother', '0', 'None']);
+        
+        // Paternal grandparents
+        addTableRow(['Parent("Father")', 'GF_P', 'M', 'Paternal Grandfather', '0', 'None']);
+        addTableRow(['Parent("Father")', 'GM_P', 'F', 'Paternal Grandmother', '0', 'None']);
+        
+        // Maternal grandparents
+        addTableRow(['Parent("Mother")', 'GF_M', 'M', 'Maternal Grandfather', '0', 'None']);
+        addTableRow(['Parent("Mother")', 'GM_M', 'F', 'Maternal Grandmother', '0', 'None']);
+        
+        // Paternal great-grandparents (father's side)
+        addTableRow(['Parent("GF_P")', 'GGF_PP', 'M', 'Great-Grandfather (PP)', '0', 'None']);
+        addTableRow(['Parent("GF_P")', 'GGM_PP', 'F', 'Great-Grandmother (PP)', '0', 'None']);
+        addTableRow(['Parent("GM_P")', 'GGF_PM', 'M', 'Great-Grandfather (PM)', '0', 'None']);
+        addTableRow(['Parent("GM_P")', 'GGM_PM', 'F', 'Great-Grandmother (PM)', '0', 'None']);
+        
+        // Maternal great-grandparents (mother's side)
+        addTableRow(['Parent("GF_M")', 'GGF_MP', 'M', 'Great-Grandfather (MP)', '0', 'None']);
+        addTableRow(['Parent("GF_M")', 'GGM_MP', 'F', 'Great-Grandmother (MP)', '0', 'None']);
+        addTableRow(['Parent("GM_M")', 'GGF_MM', 'M', 'Great-Grandfather (MM)', '0', 'None']);
+        addTableRow(['Parent("GM_M")', 'GGM_MM', 'F', 'Great-Grandmother (MM)', '0', 'None']);
+    }
+    
     updateGraph();
 }

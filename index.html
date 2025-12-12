@@ -17,7 +17,16 @@
             </div>
             
             <div class="sidebar-content">
-                <section class="panel">
+                <section class="panel collapsible collapsed">
+                    <h2>Tree Presets</h2>
+                    <div class="control-group" style="flex-direction: column; gap: 8px;">
+                        <button id="presetPatientBtn" class="btn secondary full-width">Patient Only</button>
+                        <button id="presetGrandparentsBtn" class="btn secondary full-width">Patient + Grandparents</button>
+                        <button id="presetGreatGrandparentsBtn" class="btn secondary full-width">Patient + Great-Grandparents</button>
+                    </div>
+                </section>
+
+                <section class="panel collapsible collapsed">
                     <h2>Data Input</h2>
                     <div class="control-group">
                         <label class="file-upload-btn">
@@ -31,18 +40,19 @@
                     </div>
                 </section>
 
-                <section class="panel">
+                <section class="panel collapsible collapsed">
                     <h2>Display Mode</h2>
                     <div class="control-group">
                         <label class="toggle-switch">
+                            <span class="toggle-label-left">Colors</span>
                             <input type="checkbox" id="grayscaleMode">
                             <span class="toggle-slider"></span>
-                            <span class="toggle-label">Grayscale Patterns</span>
+                            <span class="toggle-label-right">Grayscale</span>
                         </label>
                     </div>
                 </section>
 
-                <section class="panel">
+                <section class="panel collapsible collapsed">
                     <h2>Settings</h2>
                     <div class="settings-grid">
                         <div class="setting-item">
@@ -65,10 +75,27 @@
                             <label>Text Distance <span id="textDistVal">15</span></label>
                             <input type="range" id="textDist" min="5" max="30" value="15">
                         </div>
+                        <div class="setting-item">
+                            <label>Font Family</label>
+                            <select id="fontFamily">
+                                <option value="Arial">Arial</option>
+                                <option value="Times New Roman">Times New Roman</option>
+                                <option value="Georgia">Georgia</option>
+                                <option value="Courier New">Courier New</option>
+                                <option value="Verdana">Verdana</option>
+                                <option value="Helvetica">Helvetica</option>
+                                <option value="Comic Sans MS">Comic Sans MS</option>
+                                <option value="Inter" selected>Inter</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label>Note Max Width <span id="noteMaxWidthVal">150</span>px</label>
+                            <input type="range" id="noteMaxWidth" min="50" max="300" value="150">
+                        </div>
                     </div>
                 </section>
 
-                <section class="panel flex-grow">
+                <section class="panel collapsible collapsed flex-grow">
                     <div class="panel-header">
                         <h2>Data Editor</h2>
                         <button id="updateBtn" class="btn primary small">Update Graph</button>
@@ -83,7 +110,6 @@
                                     <th>Notes</th>
                                     <th>Dead</th>
                                     <th>Condition</th>
-                                    <th>Value</th>
                                     <th></th>
                                 </tr>
                             </thead>

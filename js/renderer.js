@@ -245,6 +245,8 @@ function renderGenogram(data) {
     const rankSep = window.genogramSettings ? parseInt(window.genogramSettings.rankSep) : 50;
     const fontSize = window.genogramSettings ? parseInt(window.genogramSettings.fontSize) : 12;
     const textDist = window.genogramSettings ? parseInt(window.genogramSettings.textDist) : 10;
+    const fontFamily = window.genogramSettings ? window.genogramSettings.fontFamily : 'Inter';
+    const noteMaxWidth = window.genogramSettings ? parseInt(window.genogramSettings.noteMaxWidth) : 150;
 
     // Create the graph
     const g = new dagreD3.graphlib.Graph()
@@ -630,17 +632,60 @@ function renderGenogram(data) {
                 .text("P ➔")
                 .style("font-size", (fontSize + 2) + "px")
                 .style("font-weight", "bold")
-                .style("text-anchor", "end");
+                .style("text-anchor", "end")
+                .style("font-family", fontFamily);
         }
 
-        // Display Notes to the right
+        // Display Notes to the right with wrapping
         if (node.notes && node.notes !== "None" && node.notes !== "") {
-            el.append("text")
-                .attr("x", node.width/2 + textDist)
-                .attr("y", 5)
-                .text(node.notes)
-                .style("font-size", fontSize + "px")
-                .style("text-anchor", "start");
+            const words = node.notes.split(' ');
+            let line = '';
+            let lineNumber = 0;
+            const lineHeight = fontSize * 1.2;
+            const x = node.width/2 + textDist;
+            
+            const textGroup = el.append("g");
+            
+            words.forEach((word, i) => {
+                const testLine = line + (line ? ' ' : '') + word;
+                // Create temporary text to measure width
+                const tempText = textGroup.append("text")
+                    .attr("x", x)
+                    .attr("y", 0)
+                    .text(testLine)
+                    .style("font-size", fontSize + "px")
+                    .style("font-family", fontFamily)
+                    .style("text-anchor", "start");
+                
+                const textWidth = tempText.node().getComputedTextLength();
+                tempText.remove();
+                
+                if (textWidth > noteMaxWidth && line !== '') {
+                    // Add current line
+                    textGroup.append("text")
+                        .attr("x", x)
+                        .attr("y", -lineHeight + lineNumber * lineHeight)
+                        .text(line)
+                        .style("font-size", fontSize + "px")
+                        .style("font-family", fontFamily)
+                        .style("text-anchor", "start");
+                    line = word;
+                    lineNumber++;
+                } else {
+                    line = testLine;
+                }
+                
+                // Add the last line
+                if (i === words.length - 1) {
+                    textGroup.append("text")
+                        .attr("x", x)
+                        .attr("y", -lineHeight + lineNumber * lineHeight)
+                        .text(line)
+                        .style("font-size", fontSize + "px")
+                        .style("font-family", fontFamily)
+                        .style("text-anchor", "start");
+                }
+            });
         }
 
         // Add click handler to open edit modal

@@ -83,6 +83,31 @@ body {
     gap: 16px;
 }
 
+.panel.collapsible > h2,
+.panel.collapsible > .panel-header {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.panel.collapsible > h2::after,
+.panel.collapsible > .panel-header::after {
+    content: '▼';
+    font-size: 0.75rem;
+    transition: transform 0.3s;
+}
+
+.panel.collapsible.collapsed > h2::after,
+.panel.collapsible.collapsed > .panel-header::after {
+    transform: rotate(-90deg);
+}
+
+.panel.collapsible.collapsed > *:not(h2):not(.panel-header) {
+    display: none;
+}
+
 .panel h2 {
     margin: 0;
     font-size: 0.875rem;
@@ -186,6 +211,23 @@ body {
 .settings-grid {
     display: grid;
     gap: 16px;
+}
+
+.setting-item select {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-family: inherit;
+    background-color: white;
+    cursor: pointer;
+}
+
+.setting-item select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .setting-item {
@@ -520,9 +562,10 @@ td[contenteditable="true"]:focus {
 .toggle-switch {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     cursor: pointer;
     user-select: none;
+    justify-content: center;
 }
 
 .toggle-switch input[type="checkbox"] {
@@ -559,8 +602,20 @@ td[contenteditable="true"]:focus {
     transform: translateX(24px);
 }
 
-.toggle-label {
+.toggle-label-left,
+.toggle-label-right {
     font-size: 0.875rem;
-    color: var(--text-primary);
+    color: var(--text-secondary);
     font-weight: 500;
+    transition: color 0.3s;
+}
+
+.toggle-switch input[type="checkbox"]:not(:checked) ~ .toggle-label-left {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.toggle-switch input[type="checkbox"]:checked ~ .toggle-label-right {
+    color: var(--text-primary);
+    font-weight: 600;
 }
