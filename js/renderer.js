@@ -1,3 +1,242 @@
+// Pattern Picker Modal
+window.showPatternPicker = function(condition, targetElement) {
+    // Remove any existing picker
+    d3.select("#pattern-picker").remove();
+
+    const currentPatternId = window.patternManager.getPatternForCondition(condition);
+    
+    // Create picker container
+    const picker = d3.select("body").append("div")
+        .attr("id", "pattern-picker")
+        .style("position", "fixed")
+        .style("background", "white")
+        .style("border", "2px solid #333")
+        .style("border-radius", "8px")
+        .style("padding", "15px")
+        .style("box-shadow", "0 4px 12px rgba(0,0,0,0.3)")
+        .style("z-index", "10000")
+        .style("max-width", "400px")
+        .style("max-height", "500px")
+        .style("overflow-y", "auto");
+
+    // Position near the clicked element (on the left side to avoid screen cutoff)
+    const rect = targetElement.getBoundingClientRect();
+    picker.style("right", (window.innerWidth - rect.left + 10) + "px")
+        .style("top", rect.top + "px");
+
+    // Add title
+    picker.append("div")
+        .style("font-weight", "bold")
+        .style("margin-bottom", "10px")
+        .style("font-size", "14px")
+        .text(`Select pattern for: ${condition}`);
+
+    // Create grid of patterns
+    const grid = picker.append("div")
+        .style("display", "grid")
+        .style("grid-template-columns", "repeat(4, 1fr)")
+        .style("gap", "8px");
+
+    // Add all available patterns
+    window.patternManager.availablePatterns.forEach(patternInfo => {
+        const conditionUsingThis = window.patternManager.getConditionByPattern(patternInfo.id);
+        const isCurrentPattern = patternInfo.id === currentPatternId;
+        const isInUse = conditionUsingThis !== null && !isCurrentPattern;
+
+        const patternContainer = grid.append("div")
+            .style("display", "flex")
+            .style("flex-direction", "column")
+            .style("gap", "4px");
+
+        const patternItem = patternContainer.append("div")
+            .style("border", isCurrentPattern ? "3px solid #4CAF50" : "2px solid #000")
+            .style("border-radius", "4px")
+            .style("padding", "0")
+            .style("cursor", "pointer")
+            .style("position", "relative")
+            .style("background", "white")
+            .style("aspect-ratio", "1")
+            .style("overflow", "hidden")
+            .on("click", function() {
+                console.log(`[PatternPicker] Selected pattern "${patternInfo.id}" for condition "${condition}"`);
+                window.patternManager.setPatternForCondition(condition, patternInfo.id);
+                d3.select("#pattern-picker").remove();
+                updateGraph();
+            })
+            .on("mouseenter", function() {
+                d3.select(this).style("opacity", "0.8");
+            })
+            .on("mouseleave", function() {
+                d3.select(this).style("opacity", "1");
+            });
+
+        // Add pattern image
+        patternItem.append("img")
+            .attr("src", patternInfo.file)
+            .attr("alt", patternInfo.name)
+            .style("width", "100%")
+            .style("height", "100%")
+            .style("object-fit", "cover")
+            .style("display", "block");
+
+        // Add label showing if in use (outside the bordered box)
+        if (isInUse) {
+            patternContainer.append("div")
+                .style("font-size", "9px")
+                .style("text-align", "center")
+                .style("color", "#ff6f00")
+                .style("font-weight", "bold")
+                .text(`Used by: ${conditionUsingThis}`);
+        } else if (isCurrentPattern) {
+            patternContainer.append("div")
+                .style("font-size", "9px")
+                .style("text-align", "center")
+                .style("color", "#4CAF50")
+                .style("font-weight", "bold")
+                .text("Current");
+        }
+    });
+
+    // Add close button
+    picker.append("button")
+        .text("Close")
+        .style("margin-top", "10px")
+        .style("width", "100%")
+        .style("padding", "8px")
+        .style("cursor", "pointer")
+        .style("background", "#f44336")
+        .style("color", "white")
+        .style("border", "none")
+        .style("border-radius", "4px")
+        .style("font-weight", "bold")
+        .on("click", function() {
+            d3.select("#pattern-picker").remove();
+        });
+
+    // Close picker when clicking outside
+    d3.select("body").on("click.pattern-picker", function() {
+        if (!picker.node().contains(d3.event.target) && !targetElement.contains(d3.event.target)) {
+            d3.select("#pattern-picker").remove();
+            d3.select("body").on("click.pattern-picker", null);
+        }
+    });
+};
+
+// Color Picker Modal
+window.showColorPicker = function(condition, targetElement) {
+    // Remove any existing picker
+    d3.select("#color-picker").remove();
+
+    const currentColor = window.patternManager.getColorForCondition(condition);
+    
+    // Create picker container
+    const picker = d3.select("body").append("div")
+        .attr("id", "color-picker")
+        .style("position", "fixed")
+        .style("background", "white")
+        .style("border", "2px solid #333")
+        .style("border-radius", "8px")
+        .style("padding", "15px")
+        .style("box-shadow", "0 4px 12px rgba(0,0,0,0.3)")
+        .style("z-index", "10000")
+        .style("max-width", "400px")
+        .style("max-height", "500px")
+        .style("overflow-y", "auto");
+
+    // Position near the clicked element (on the left side to avoid screen cutoff)
+    const rect = targetElement.getBoundingClientRect();
+    picker.style("right", (window.innerWidth - rect.left + 10) + "px")
+        .style("top", rect.top + "px");
+
+    // Add title
+    picker.append("div")
+        .style("font-weight", "bold")
+        .style("margin-bottom", "10px")
+        .style("font-size", "14px")
+        .text(`Select color for: ${condition}`);
+
+    // Create grid of colors
+    const grid = picker.append("div")
+        .style("display", "grid")
+        .style("grid-template-columns", "repeat(4, 1fr)")
+        .style("gap", "8px");
+
+    // Add all available colors
+    window.patternManager.availableColors.forEach(color => {
+        const conditionUsingThis = window.patternManager.getConditionByColor(color);
+        const isCurrentColor = color === currentColor;
+        const isInUse = conditionUsingThis !== null && !isCurrentColor;
+
+        const colorContainer = grid.append("div")
+            .style("display", "flex")
+            .style("flex-direction", "column")
+            .style("gap", "4px");
+
+        const colorItem = colorContainer.append("div")
+            .style("border", isCurrentColor ? "3px solid #4CAF50" : "2px solid #000")
+            .style("border-radius", "4px")
+            .style("padding", "0")
+            .style("cursor", "pointer")
+            .style("position", "relative")
+            .style("background", color)
+            .style("aspect-ratio", "1")
+            .style("min-height", "50px")
+            .on("click", function() {
+                console.log(`[ColorPicker] Selected color "${color}" for condition "${condition}"`);
+                window.patternManager.setColorForCondition(condition, color);
+                d3.select("#color-picker").remove();
+                updateGraph();
+            })
+            .on("mouseenter", function() {
+                d3.select(this).style("opacity", "0.8");
+            })
+            .on("mouseleave", function() {
+                d3.select(this).style("opacity", "1");
+            });
+
+        // Add label showing if in use (outside the bordered box)
+        if (isInUse) {
+            colorContainer.append("div")
+                .style("font-size", "9px")
+                .style("text-align", "center")
+                .style("color", "#ff6f00")
+                .style("font-weight", "bold")
+                .text(`Used by: ${conditionUsingThis}`);
+        } else if (isCurrentColor) {
+            colorContainer.append("div")
+                .style("font-size", "9px")
+                .style("text-align", "center")
+                .style("color", "#4CAF50")
+                .style("font-weight", "bold")
+                .text("Current");
+        }
+    });
+
+    // Add close button
+    picker.append("button")
+        .text("Close")
+        .style("margin-top", "10px")
+        .style("width", "100%")
+        .style("padding", "8px")
+        .style("cursor", "pointer")
+        .style("background", "#f44336")
+        .style("color", "white")
+        .style("border", "none")
+        .style("border-radius", "4px")
+        .style("font-weight", "bold")
+        .on("click", function() {
+            d3.select("#color-picker").remove();
+        });
+
+    // Close picker when clicking outside
+    d3.select("body").on("click.color-picker", function() {
+        if (!picker.node().contains(d3.event.target) && !targetElement.contains(d3.event.target)) {
+            d3.select("#color-picker").remove();
+            d3.select("body").on("click.color-picker", null);
+        }
+    });
+};
+
 function renderGenogram(data) {
     const { individuals, families } = data;
     
@@ -32,22 +271,66 @@ function renderGenogram(data) {
     legend.html(""); // Clear existing
     
     if (isGrayscale) {
-        // Grayscale legend with clickable items
-        conditions.forEach(cond => {
+        console.log(`[Legend] Rendering grayscale legend for ${conditions.length} conditions:`, conditions);
+        
+        // Grayscale legend with clickable pattern icons
+        conditions.forEach((cond, index) => {
             const patternId = window.patternManager.getPatternForCondition(cond);
+            const patternImagePath = window.patternManager.getPatternPreview(patternId);
+            
+            console.log(`[Legend] Creating item ${index + 1}/${conditions.length} - Condition: "${cond}", Pattern: "${patternId}", Image: "${patternImagePath}"`);
+            
             const item = legend.append("div")
-                .attr("class", "legend-item")
+                .attr("class", "legend-item");
+            
+            // Use img tag to display the pattern PNG (downscaled) - make it clickable
+            const colorDiv = item.append("div")
+                .attr("class", "legend-color")
                 .style("cursor", "pointer")
+                .style("position", "relative")
+                .style("transition", "transform 0.2s, box-shadow 0.2s")
                 .on("click", function() {
-                    // Change pattern for this condition
-                    window.patternManager.changePattern(cond);
-                    updateGraph();
+                    console.log(`[Legend] ✓ CLICK detected on pattern icon for condition: "${cond}"`);
+                    console.log(`[Legend] Click event:`, d3.event);
+                    console.log(`[Legend] Target element:`, this);
+                    console.log(`[Legend] Checking if window.showPatternPicker exists:`, typeof window.showPatternPicker);
+                    d3.event.stopPropagation();
+                    
+                    if (typeof window.showPatternPicker === 'function') {
+                        console.log(`[Legend] Calling window.showPatternPicker("${cond}", DOM element)`);
+                        window.showPatternPicker(cond, this);
+                    } else {
+                        console.error(`[Legend] ERROR: window.showPatternPicker is not a function!`);
+                    }
+                })
+                .on("mouseenter", function() {
+                    console.log(`[Legend] ✓ HOVER ENTER detected on pattern icon for: "${cond}"`);
+                    d3.select(this)
+                        .style("transform", "scale(1.1)")
+                        .style("box-shadow", "0 2px 8px rgba(0,0,0,0.3)");
+                })
+                .on("mouseleave", function() {
+                    console.log(`[Legend] ✓ HOVER LEAVE detected on pattern icon for: "${cond}"`);
+                    d3.select(this)
+                        .style("transform", "scale(1)")
+                        .style("box-shadow", "none");
                 });
             
-            const colorDiv = item.append("div").attr("class", "legend-color");
-            colorDiv.style("background", window.patternManager.getPatternPreviewCSS(patternId));
+            colorDiv.append("img")
+                .attr("src", patternImagePath)
+                .attr("alt", cond)
+                .style("width", "100%")
+                .style("height", "100%")
+                .style("object-fit", "cover")
+                .style("display", "block")
+                .style("pointer-events", "none"); // Prevent img from blocking click events
+                
             item.append("span").text(cond);
+            
+            console.log(`[Legend] Item ${index + 1} created successfully`);
         });
+        
+        console.log(`[Legend] All ${conditions.length} grayscale legend items created`);
         
         const noneItem = legend.append("div").attr("class", "legend-item");
         noneItem.append("div").attr("class", "legend-color")
@@ -55,17 +338,56 @@ function renderGenogram(data) {
             .style("border", "1px solid #333");
         noneItem.append("span").text("None/Healthy");
     } else {
-        // Color legend
-        conditions.forEach(cond => {
-            const item = legend.append("div").attr("class", "legend-item");
-            item.append("div")
+        console.log(`[Legend] Rendering color legend for ${conditions.length} conditions:`, conditions);
+        
+        // Color legend with clickable color boxes
+        conditions.forEach((cond, index) => {
+            console.log(`[Legend] Creating color item ${index + 1}/${conditions.length} - Condition: "${cond}"`);
+            
+            const item = legend.append("div")
+                .attr("class", "legend-item");
+            
+            // Make color box clickable
+            const colorDiv = item.append("div")
                 .attr("class", "legend-color")
-                .style("background-color", window.patternManager.getColorForCondition(cond));
+                .style("background-color", window.patternManager.getColorForCondition(cond))
+                .style("cursor", "pointer")
+                .style("transition", "transform 0.2s, box-shadow 0.2s")
+                .on("click", function() {
+                    console.log(`[Legend] ✓ CLICK detected on color box for condition: "${cond}"`);
+                    d3.event.stopPropagation();
+                    
+                    if (typeof window.showColorPicker === 'function') {
+                        console.log(`[Legend] Calling window.showColorPicker("${cond}", DOM element)`);
+                        window.showColorPicker(cond, this);
+                    } else {
+                        console.error(`[Legend] ERROR: window.showColorPicker is not a function!`);
+                    }
+                })
+                .on("mouseenter", function() {
+                    console.log(`[Legend] ✓ HOVER ENTER detected on color box for: "${cond}"`);
+                    d3.select(this)
+                        .style("transform", "scale(1.1)")
+                        .style("box-shadow", "0 2px 8px rgba(0,0,0,0.3)");
+                })
+                .on("mouseleave", function() {
+                    console.log(`[Legend] ✓ HOVER LEAVE detected on color box for: "${cond}"`);
+                    d3.select(this)
+                        .style("transform", "scale(1)")
+                        .style("box-shadow", "none");
+                });
+                
             item.append("span").text(cond);
+            
+            console.log(`[Legend] Color item ${index + 1} created successfully`);
         });
         
+        console.log(`[Legend] All ${conditions.length} color legend items created`);
+        
         const noneItem = legend.append("div").attr("class", "legend-item");
-        noneItem.append("div").attr("class", "legend-color").style("background-color", "#fff");
+        noneItem.append("div").attr("class", "legend-color")
+            .style("background-color", "#fff")
+            .style("border", "1px solid #333");
         noneItem.append("span").text("None/Healthy");
     }
 
@@ -102,8 +424,10 @@ function renderGenogram(data) {
             if (ind.condition && ind.condition !== 'None') {
                 const patternId = window.patternManager.getPatternForCondition(ind.condition);
                 fillStyle = `fill: url(#${patternId}); stroke: #333; stroke-width: 2px;`;
+                console.log(`[Renderer] Individual ${ind.id} - Condition: "${ind.condition}", Pattern: "${patternId}", Fill: "${fillStyle}"`);
             } else {
                 fillStyle = `fill: #fff; stroke: #333; stroke-width: 2px;`;
+                console.log(`[Renderer] Individual ${ind.id} - No condition, using white fill`);
             }
         } else {
             // Use colors for normal mode
@@ -116,13 +440,8 @@ function renderGenogram(data) {
         // Get settings or defaults
         const nodeSize = window.genogramSettings ? parseInt(window.genogramSettings.nodeSize) : 40;
         
-        // Create label showing the value
-        const valueLabel = ind.value !== null && ind.value !== undefined
-            ? ind.value.toFixed(2)
-            : 'N/A';
-        
         g.setNode(ind.id, {
-            label: valueLabel, // Display value inside the shape
+            label: '', // Empty label to show patterns clearly
             shape: shape,
             style: fillStyle,
             width: nodeSize,
@@ -219,10 +538,15 @@ function renderGenogram(data) {
     
     // Define patterns for different conditions (grayscale mode)
     if (isGrayscale) {
+        console.log(`[Renderer] Grayscale mode enabled. Creating ${conditions.length} patterns for conditions:`, conditions);
         conditions.forEach(cond => {
             const patternId = window.patternManager.getPatternForCondition(cond);
+            console.log(`[Renderer] Creating pattern for condition "${cond}": ${patternId}`);
             window.patternManager.createSVGPattern(defs, patternId);
         });
+        console.log(`[Renderer] All SVG patterns created in <defs>`);
+    } else {
+        console.log(`[Renderer] Color mode enabled, no patterns needed`);
     }
     
     const svgGroup = svg.append("g");

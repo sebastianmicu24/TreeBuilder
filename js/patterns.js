@@ -2,36 +2,66 @@
 
 class PatternManager {
     constructor() {
-        // Define all available patterns
+        // Define all available patterns (now using PNG images)
         this.availablePatterns = [
-            { id: 'quadrant-tl', name: 'Top-Left Fill', type: 'quadrant' },
-            { id: 'quadrant-tr', name: 'Top-Right Fill', type: 'quadrant' },
-            { id: 'quadrant-bl', name: 'Bottom-Left Fill', type: 'quadrant' },
-            { id: 'quadrant-br', name: 'Bottom-Right Fill', type: 'quadrant' },
-            { id: 'dots', name: 'Dots', type: 'pattern' },
-            { id: 'horizontal', name: 'Horizontal Lines', type: 'pattern' },
-            { id: 'vertical', name: 'Vertical Lines', type: 'pattern' },
-            { id: 'diagonal-right', name: 'Diagonal Right', type: 'pattern' },
-            { id: 'diagonal-left', name: 'Diagonal Left', type: 'pattern' },
-            { id: 'checkerboard', name: 'Checkerboard', type: 'pattern' },
-            { id: 'cross-hatch', name: 'Cross-Hatch', type: 'pattern' },
-            { id: 'dots-small', name: 'Small Dots', type: 'pattern' }
+            { id: 'pattern-01', name: 'Top-Left Fill', type: 'quadrant', file: 'patterns/pattern-01.png' },
+            { id: 'pattern-02', name: 'Top-Right Fill', type: 'quadrant', file: 'patterns/pattern-02.png' },
+            { id: 'pattern-03', name: 'Bottom-Left Fill', type: 'quadrant', file: 'patterns/pattern-03.png' },
+            { id: 'pattern-04', name: 'Bottom-Right Fill', type: 'quadrant', file: 'patterns/pattern-04.png' },
+            { id: 'pattern-05', name: 'Dots', type: 'pattern', file: 'patterns/pattern-05.png' },
+            { id: 'pattern-06', name: 'Horizontal Lines', type: 'pattern', file: 'patterns/pattern-06.png' },
+            { id: 'pattern-07', name: 'Vertical Lines', type: 'pattern', file: 'patterns/pattern-07.png' },
+            { id: 'pattern-08', name: 'Diagonal Right', type: 'pattern', file: 'patterns/pattern-08.png' },
+            { id: 'pattern-09', name: 'Diagonal Left', type: 'pattern', file: 'patterns/pattern-09.png' },
+            { id: 'pattern-10', name: 'Checkerboard', type: 'pattern', file: 'patterns/pattern-10.png' },
+            { id: 'pattern-11', name: 'Cross-Hatch', type: 'pattern', file: 'patterns/pattern-11.png' },
+            { id: 'pattern-12', name: 'Small Dots', type: 'pattern', file: 'patterns/pattern-12.png' },
+            { id: 'pattern-13', name: 'Grid', type: 'pattern', file: 'patterns/pattern-13.png' },
+            { id: 'pattern-14', name: 'Waves', type: 'pattern', file: 'patterns/pattern-14.png' },
+            { id: 'pattern-15', name: 'Brick', type: 'pattern', file: 'patterns/pattern-15.png' },
+            { id: 'pattern-16', name: 'Zigzag', type: 'pattern', file: 'patterns/pattern-16.png' }
         ];
-        
         this.conditionPatternMap = {}; // Maps condition name to pattern id
         this.usedPatterns = new Set();
         this.colorScale = null;
+        this.conditionColorMap = {}; // Maps condition name to custom color
+        
+        // Define a palette of bright, distinguishable colors
+        this.availableColors = [
+            '#FF6B6B', // Red
+            '#4ECDC4', // Teal
+            '#FFE66D', // Yellow
+            '#95E1D3', // Mint
+            '#FF8B94', // Pink
+            '#A8E6CF', // Light Green
+            '#FFD93D', // Gold
+            '#6BCF7F', // Green
+            '#95B8D1', // Blue
+            '#E8A0BF', // Rose
+            '#FFA07A', // Light Salmon
+            '#98D8C8', // Seafoam
+            '#F7B731', // Orange
+            '#A29BFE', // Lavender
+            '#FD79A8', // Hot Pink
+            '#74B9FF', // Sky Blue
+            '#55E6C1', // Turquoise
+            '#FEA47F', // Peach
+            '#B8E994', // Lime
+            '#F8B500'  // Amber
+        ];
     }
 
     // Initialize color scale
     initColorScale(conditions) {
         this.colorScale = d3.scaleOrdinal(d3.schemeCategory10).domain(conditions);
     }
+    
 
     // Get or assign a pattern for a condition
     getPatternForCondition(condition) {
         if (!this.conditionPatternMap[condition]) {
             this.conditionPatternMap[condition] = this.assignRandomPattern();
+            console.log(`[PatternManager] Assigned pattern "${this.conditionPatternMap[condition]}" to condition "${condition}"`);
         }
         return this.conditionPatternMap[condition];
     }
@@ -59,168 +89,105 @@ class PatternManager {
         return this.conditionPatternMap[condition];
     }
 
-    // Create SVG pattern definition
+    // Get condition currently using a specific pattern
+    getConditionByPattern(patternId) {
+        for (const [condition, pattern] of Object.entries(this.conditionPatternMap)) {
+            if (pattern === patternId) {
+                return condition;
+            }
+        }
+        return null;
+    }
+
+    // Set a specific pattern for a condition
+    setPatternForCondition(condition, newPatternId) {
+        const currentPattern = this.conditionPatternMap[condition];
+        const conditionUsingNewPattern = this.getConditionByPattern(newPatternId);
+
+        if (conditionUsingNewPattern && conditionUsingNewPattern !== condition) {
+            // Pattern is already in use - swap patterns
+            console.log(`[PatternManager] Swapping patterns: "${condition}" ↔ "${conditionUsingNewPattern}"`);
+            this.conditionPatternMap[conditionUsingNewPattern] = currentPattern;
+            this.conditionPatternMap[condition] = newPatternId;
+        } else {
+            // Pattern is not in use - simply assign it
+            console.log(`[PatternManager] Assigning unused pattern "${newPatternId}" to "${condition}"`);
+            if (currentPattern) {
+                this.usedPatterns.delete(currentPattern);
+            }
+            this.conditionPatternMap[condition] = newPatternId;
+            this.usedPatterns.add(newPatternId);
+        }
+        
+        return newPatternId;
+    }
+    // Create SVG pattern definition using PNG image
     createSVGPattern(defs, patternId) {
+        const patternInfo = this.availablePatterns.find(p => p.id === patternId);
+        if (!patternInfo) {
+            console.error(`[PatternManager] Pattern not found: ${patternId}`);
+            return;
+        }
+
+        console.log(`[PatternManager] Creating SVG pattern "${patternId}" with image: ${patternInfo.file}`);
+
+        // Use objectBoundingBox to make pattern fill shape completely without tiling
         const pattern = defs.append("pattern")
             .attr("id", patternId)
             .attr("patternUnits", "objectBoundingBox")
+            .attr("patternContentUnits", "objectBoundingBox")
             .attr("width", "1")
-            .attr("height", "1");
+            .attr("height", "1")
+            .attr("x", "0")
+            .attr("y", "0");
 
-        switch(patternId) {
-            case 'quadrant-tl':
-                pattern.append("rect").attr("width", "1").attr("height", "1").attr("fill", "#fff");
-                pattern.append("polygon")
-                    .attr("points", "0,0 0.5,0 0,0.5")
-                    .attr("fill", "#666");
-                break;
-
-            case 'quadrant-tr':
-                pattern.append("rect").attr("width", "1").attr("height", "1").attr("fill", "#fff");
-                pattern.append("polygon")
-                    .attr("points", "0.5,0 1,0 1,0.5")
-                    .attr("fill", "#666");
-                break;
-
-            case 'quadrant-bl':
-                pattern.append("rect").attr("width", "1").attr("height", "1").attr("fill", "#fff");
-                pattern.append("polygon")
-                    .attr("points", "0,0.5 0,1 0.5,1")
-                    .attr("fill", "#666");
-                break;
-
-            case 'quadrant-br':
-                pattern.append("rect").attr("width", "1").attr("height", "1").attr("fill", "#fff");
-                pattern.append("polygon")
-                    .attr("points", "0.5,1 1,1 1,0.5")
-                    .attr("fill", "#666");
-                break;
-
-            case 'dots':
-                pattern.attr("patternUnits", "userSpaceOnUse").attr("width", 10).attr("height", 10);
-                pattern.append("rect").attr("width", 10).attr("height", 10).attr("fill", "#fff");
-                pattern.append("circle").attr("cx", 5).attr("cy", 5).attr("r", 2.5).attr("fill", "#666");
-                break;
-
-            case 'dots-small':
-                pattern.attr("patternUnits", "userSpaceOnUse").attr("width", 6).attr("height", 6);
-                pattern.append("rect").attr("width", 6).attr("height", 6).attr("fill", "#fff");
-                pattern.append("circle").attr("cx", 3).attr("cy", 3).attr("r", 1.2).attr("fill", "#666");
-                break;
-
-            case 'horizontal':
-                pattern.attr("patternUnits", "userSpaceOnUse").attr("width", 8).attr("height", 8);
-                pattern.append("rect").attr("width", 8).attr("height", 8).attr("fill", "#fff");
-                pattern.append("rect").attr("x", 0).attr("y", 0).attr("width", 8).attr("height", 3).attr("fill", "#666");
-                break;
-
-            case 'vertical':
-                pattern.attr("patternUnits", "userSpaceOnUse").attr("width", 8).attr("height", 8);
-                pattern.append("rect").attr("width", 8).attr("height", 8).attr("fill", "#fff");
-                pattern.append("rect").attr("x", 0).attr("y", 0).attr("width", 3).attr("height", 8).attr("fill", "#666");
-                break;
-
-            case 'diagonal-right':
-                pattern.attr("patternUnits", "userSpaceOnUse").attr("width", 8).attr("height", 8);
-                pattern.append("rect").attr("width", 8).attr("height", 8).attr("fill", "#fff");
-                pattern.append("line")
-                    .attr("x1", 0).attr("y1", 0)
-                    .attr("x2", 8).attr("y2", 8)
-                    .attr("stroke", "#666")
-                    .attr("stroke-width", 2);
-                pattern.append("line")
-                    .attr("x1", -4).attr("y1", 4)
-                    .attr("x2", 4).attr("y2", 12)
-                    .attr("stroke", "#666")
-                    .attr("stroke-width", 2);
-                pattern.append("line")
-                    .attr("x1", 4).attr("y1", -4)
-                    .attr("x2", 12).attr("y2", 4)
-                    .attr("stroke", "#666")
-                    .attr("stroke-width", 2);
-                break;
-
-            case 'diagonal-left':
-                pattern.attr("patternUnits", "userSpaceOnUse").attr("width", 8).attr("height", 8);
-                pattern.append("rect").attr("width", 8).attr("height", 8).attr("fill", "#fff");
-                pattern.append("line")
-                    .attr("x1", 0).attr("y1", 8)
-                    .attr("x2", 8).attr("y2", 0)
-                    .attr("stroke", "#666")
-                    .attr("stroke-width", 2);
-                pattern.append("line")
-                    .attr("x1", -4).attr("y1", 4)
-                    .attr("x2", 4).attr("y2", -4)
-                    .attr("stroke", "#666")
-                    .attr("stroke-width", 2);
-                pattern.append("line")
-                    .attr("x1", 4).attr("y1", 12)
-                    .attr("x2", 12).attr("y2", 4)
-                    .attr("stroke", "#666")
-                    .attr("stroke-width", 2);
-                break;
-
-            case 'checkerboard':
-                pattern.attr("patternUnits", "userSpaceOnUse").attr("width", 10).attr("height", 10);
-                pattern.append("rect").attr("width", 10).attr("height", 10).attr("fill", "#fff");
-                pattern.append("rect").attr("x", 0).attr("y", 0).attr("width", 5).attr("height", 5).attr("fill", "#666");
-                pattern.append("rect").attr("x", 5).attr("y", 5).attr("width", 5).attr("height", 5).attr("fill", "#666");
-                break;
-
-            case 'cross-hatch':
-                pattern.attr("patternUnits", "userSpaceOnUse").attr("width", 10).attr("height", 10);
-                pattern.append("rect").attr("width", 10).attr("height", 10).attr("fill", "#fff");
-                pattern.append("line")
-                    .attr("x1", 0).attr("y1", 0)
-                    .attr("x2", 10).attr("y2", 10)
-                    .attr("stroke", "#666")
-                    .attr("stroke-width", 1.5);
-                pattern.append("line")
-                    .attr("x1", 10).attr("y1", 0)
-                    .attr("x2", 0).attr("y2", 10)
-                    .attr("stroke", "#666")
-                    .attr("stroke-width", 1.5);
-                break;
-        }
+        // Add the full 512x512 PNG image - it will scale to fill the shape
+        pattern.append("image")
+            .attr("href", patternInfo.file)
+            .attr("x", "0")
+            .attr("y", "0")
+            .attr("width", "1")
+            .attr("height", "1")
+            .attr("preserveAspectRatio", "none");
+        
+        console.log(`[PatternManager] SVG pattern "${patternId}" created with objectBoundingBox (no tiling, fills shape)`);
     }
 
-    // Get CSS preview for legend
-    getPatternPreviewCSS(patternId) {
-        switch(patternId) {
-            case 'quadrant-tl':
-                return "linear-gradient(to bottom right, #666 0%, #666 50%, #fff 50%, #fff 100%)";
-            case 'quadrant-tr':
-                return "linear-gradient(to bottom left, #666 0%, #666 50%, #fff 50%, #fff 100%)";
-            case 'quadrant-bl':
-                return "linear-gradient(to top right, #666 0%, #666 50%, #fff 50%, #fff 100%)";
-            case 'quadrant-br':
-                return "linear-gradient(to top left, #666 0%, #666 50%, #fff 50%, #fff 100%)";
-            case 'dots':
-                return "radial-gradient(circle at 50% 50%, #666 35%, #fff 35%), " +
-                       "radial-gradient(circle at 50% 50%, #666 35%, #fff 35%)";
-            case 'dots-small':
-                return "radial-gradient(circle at 50% 50%, #666 20%, #fff 20%)";
-            case 'horizontal':
-                return "repeating-linear-gradient(0deg, #666 0px, #666 3px, #fff 3px, #fff 8px)";
-            case 'vertical':
-                return "repeating-linear-gradient(90deg, #666 0px, #666 3px, #fff 3px, #fff 8px)";
-            case 'diagonal-right':
-                return "repeating-linear-gradient(45deg, #666 0px, #666 3px, #fff 3px, #fff 8px)";
-            case 'diagonal-left':
-                return "repeating-linear-gradient(-45deg, #666 0px, #666 3px, #fff 3px, #fff 8px)";
-            case 'checkerboard':
-                return "conic-gradient(#666 0% 25%, #fff 25% 50%, #666 50% 75%, #fff 75% 100%)";
-            case 'cross-hatch':
-                return "repeating-linear-gradient(45deg, transparent 0px, transparent 4px, #666 4px, #666 5px), " +
-                       "repeating-linear-gradient(-45deg, transparent 0px, transparent 4px, #666 4px, #666 5px)";
-            default:
-                return "#fff";
-        }
+    // Get pattern image path for a given pattern ID
+    getPatternImagePath(patternId) {
+        const patternInfo = this.availablePatterns.find(p => p.id === patternId);
+        return patternInfo ? patternInfo.file : null;
+    }
+
+    // Get pattern preview (returns image path for use in legend)
+    getPatternPreview(patternId) {
+        return this.getPatternImagePath(patternId);
     }
 
     // Get color for condition
     getColorForCondition(condition) {
+        // Return custom color if set, otherwise use color scale
+        if (this.conditionColorMap[condition]) {
+            return this.conditionColorMap[condition];
+        }
         return this.colorScale ? this.colorScale(condition) : '#fff';
+    }
+    
+    // Set custom color for a condition
+    setColorForCondition(condition, color) {
+        console.log(`[PatternManager] Setting color "${color}" for condition "${condition}"`);
+        this.conditionColorMap[condition] = color;
+        return color;
+    }
+    
+    // Get condition currently using a specific color
+    getConditionByColor(color) {
+        for (const [condition, assignedColor] of Object.entries(this.conditionColorMap)) {
+            if (assignedColor === color) {
+                return condition;
+            }
+        }
+        return null;
     }
 
     // Reset all patterns
