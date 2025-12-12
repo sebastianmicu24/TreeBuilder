@@ -65,18 +65,20 @@ this.availablePatterns = [
         }
         return this.conditionPatternMap[condition];
     }
-
-    // Assign a random unused pattern
+    // Assign pattern in numerical order
     assignRandomPattern() {
-        const unused = this.availablePatterns.filter(p => !this.usedPatterns.has(p.id));
-        if (unused.length === 0) {
-            // If all patterns used, reset and start over
-            this.usedPatterns.clear();
-            return this.availablePatterns[0].id;
+        // Find the first unused pattern in order
+        for (const pattern of this.availablePatterns) {
+            if (!this.usedPatterns.has(pattern.id)) {
+                this.usedPatterns.add(pattern.id);
+                return pattern.id;
+            }
         }
-        const selected = unused[Math.floor(Math.random() * unused.length)];
-        this.usedPatterns.add(selected.id);
-        return selected.id;
+        // If all patterns used, reset and start over with pattern-01
+        this.usedPatterns.clear();
+        const firstPattern = this.availablePatterns[0].id;
+        this.usedPatterns.add(firstPattern);
+        return firstPattern;
     }
 
     // Change pattern for a specific condition
