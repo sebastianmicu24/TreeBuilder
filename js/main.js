@@ -86,6 +86,12 @@ document.addEventListener('DOMContentLoaded', function() {
         updateGraph();
     });
 
+    // Handle Couple Line Style Toggle
+    document.getElementById('coupleLineStyle').addEventListener('change', function(e) {
+        window.coupleStraightLines = e.target.checked;
+        updateGraph();
+    });
+
     // Handle Zoom Controls
     document.getElementById('zoomIn').addEventListener('click', function() {
         if (window.currentZoom && window.currentSvg) {
@@ -117,6 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.showNames = false;
     window.showNotes = false;
     window.showConditions = true;
+    window.coupleStraightLines = false; // Default to angular lines
     updateSettings();
 
     // Handle Sidebar Resizing

@@ -575,13 +575,21 @@ function renderGenogram(data) {
         const endY = target.y - (target.height / 2); // Top of target
 
         if (isToFamily) {
-            // Parent to Family Node (Marriage)
-            // Draw down, then horizontal to family node
-            // We want: Parent -> Down -> Horizontal -> Family Node
-            
-            // Standard V-H-V
-            const midY = (startY + endY) / 2;
-            return `M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
+            // Parent to Family Node (Marriage/Couple)
+            // Check if straight horizontal lines are enabled
+            if (window.coupleStraightLines) {
+                // Draw straight horizontal line from side of parent to family node horizontal position
+                // Then draw down to family node
+                const parentCenterY = source.y; // Center height of parent
+                const sideX = startX > endX ? source.x - (source.width / 2) : source.x + (source.width / 2);
+                
+                // Horizontal line at parent's center, then down to family node
+                return `M ${startX} ${startY} L ${startX} ${parentCenterY} L ${endX} ${parentCenterY} L ${endX} ${endY}`;
+            } else {
+                // Standard angular V-H-V pattern
+                const midY = (startY + endY) / 2;
+                return `M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
+            }
         }
         else if (isFromFamily) {
             // Family Node to Child
