@@ -1,12 +1,12 @@
-Role;Id;Sex;Notes;Dead;Condition
-Patient;"John";M;"The Patient";0;"None"
-Parent("John");"Bob";M;"Father";1;"K ovaio"
-Parent("John");"Alice";F;"Mother";0;"K mammella"
-Partner("John");"Sarah";F;"Wife";0;"None"
-Son("John");"Mike";M;"Son";0;"K polmone, K ovaio"
-Sibling("John");"Emily";F;"Sister";0;"None"
-Parent("Alice");"Grandpa";M;"Maternal Grandfather";1;"None"
-Parent("Alice");"Grandma";F;"Maternal Grandmother";1;"K prostata"
-Parent("Bob");"Gennaro";M;"Grandpa";0;"None"
-Parent("Bob");"Maria";F;"Grandma";0;"None"
-Sibling("Bob");"Carla";F;"Grandma";0;"K Gastrico"
+Role;Id;Sex;Notes;Dead;Condition;GeneticTesting
+Patient;"John";M;"The Patient";0;"None";0
+Parent("John");"Bob";M;"Father";1;"K ovaio";0
+Parent("John");"Alice";F;"Mother";0;"K mammella";0
+Partner("John");"Sarah";F;"Wife";0;"None";0
+Son("John");"Mike";M;"Son";0;"K polmone, K ovaio";1
+Sibling("John");"Emily";F;"Sister";0;"None";0
+Parent("Alice");"Grandpa";M;"Maternal Grandfather";1;"None";0
+Parent("Alice");"Grandma";F;"Maternal Grandmother";1;"K prostata";0
+Parent("Bob");"Gennaro";M;"Grandpa";0;"None";0
+Parent("Bob");"Maria";F;"Grandma";0;"None";0
+Sibling("Bob");"Carla";F;"Grandma";0;"K Gastrico";0

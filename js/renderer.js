@@ -499,7 +499,8 @@ async function renderGenogram(data) {
             notes: ind.notes,
             idText: ind.id, // Store ID to display outside if needed
             value: ind.value, // Store the calculated value for reference
-            condition: ind.condition // Store condition for pattern application
+            condition: ind.condition, // Store condition for pattern application
+            geneticTesting: ind.geneticTesting // Store genetic testing flag
         });
     });
 
@@ -726,10 +727,27 @@ async function renderGenogram(data) {
         return `M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
     });
 
-    // Post-processing: Add Dead markers and Patient highlight
+    // Post-processing: Add Dead markers, Patient highlight, and Genetic Testing indicator
     svgGroup.selectAll("g.node").each(function(v) {
         const node = g.node(v);
         const el = d3.select(this);
+        
+        // Draw horizontal line above shape for genetic testing
+        if (node.geneticTesting) {
+            const w = node.width;
+            const lineOffset = window.genogramSettings ? parseInt(window.genogramSettings.geneticTestOffset) : 8;
+            const lineWidth = window.genogramSettings ? parseInt(window.genogramSettings.geneticTestWidth) : 2;
+            const lineY = -node.height/2 - lineOffset; // Position above top of shape
+            
+            el.append("line")
+                .attr("x1", -w/2)
+                .attr("y1", lineY)
+                .attr("x2", w/2)
+                .attr("y2", lineY)
+                .attr("class", "genetic-testing-marker")
+                .style("stroke-width", lineWidth + "px")
+                .style("stroke", "#000");
+        }
         
         if (node.dead) {
             // Draw single oblique line from bottom-left to top-right
