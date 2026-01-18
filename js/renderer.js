@@ -1,3 +1,8 @@
+// Ensure PatternManager is available before anything else
+if (typeof window.PatternManager === 'undefined') {
+    console.error('[Renderer] CRITICAL: PatternManager class not found! patterns.js must be loaded first.');
+}
+
 // Pattern Picker Modal
 window.showPatternPicker = function(condition, targetElement) {
     // Remove any existing picker
@@ -236,10 +241,22 @@ window.showColorPicker = function(condition, targetElement) {
         }
     });
 };
-
-function renderGenogram(data) {
+async function renderGenogram(data) {
     const { individuals, families } = data;
     
+    // Ensure pattern manager is initialized - create it if needed
+    if (!window.patternManager) {
+        console.warn('[Renderer] PatternManager not found, creating new instance...');
+        if (typeof window.PatternManager !== 'undefined') {
+            window.patternManager = new window.PatternManager();
+            console.log('[Renderer] PatternManager instance created successfully');
+        } else {
+            console.error('[Renderer] CRITICAL ERROR: PatternManager class not found! patterns.js not loaded.');
+            return;
+        }
+    }
+    
+    // Get settings
     // Get settings
     const nodeSep = window.genogramSettings ? parseInt(window.genogramSettings.nodeSep) : 50;
     const rankSep = window.genogramSettings ? parseInt(window.genogramSettings.rankSep) : 50;
@@ -259,8 +276,16 @@ function renderGenogram(data) {
         })
         .setDefaultEdgeLabel(function() { return {}; });
 
-    // Define colors for conditions
-    const conditions = [...new Set(Object.values(individuals).map(i => i.condition))].filter(c => c !== 'None' && c !== '');
+    // Define colors for conditions - handle both single conditions and arrays
+    const allConditions = Object.values(individuals).flatMap(i => {
+        if (Array.isArray(i.condition)) {
+            return i.condition;
+        } else if (i.condition && i.condition !== 'None' && i.condition !== '') {
+            return [i.condition];
+        }
+        return [];
+    });
+    const conditions = [...new Set(allConditions)].filter(c => c !== 'None' && c !== '');
     
     // Initialize pattern manager
     window.patternManager.initColorScale(conditions);
@@ -417,28 +442,47 @@ function renderGenogram(data) {
     });
 
     // Add nodes for individuals in sorted order
+    // Add nodes for individuals in sorted order
     sortedIndividuals.forEach(ind => {
         const shape = getShape(ind.sex);
         let fillStyle;
         
+        // Handle conditions as array or single value
+        const conditions = Array.isArray(ind.condition) ? ind.condition : (ind.condition ? [ind.condition] : []);
+        const validConditions = conditions.filter(c => c && c !== 'None' && c !== '');
+        
         if (isGrayscale) {
-            // Use patterns for grayscale mode
-            if (ind.condition && ind.condition !== 'None') {
-                const patternId = window.patternManager.getPatternForCondition(ind.condition);
-                fillStyle = `fill: url(#${patternId}); stroke: #333; stroke-width: 2px;`;
-                console.log(`[Renderer] Individual ${ind.id} - Condition: "${ind.condition}", Pattern: "${patternId}", Fill: "${fillStyle}"`);
+            // Use patterns with white backgrounds (Pattern 0 built-in)
+            if (validConditions.length > 0) {
+                if (validConditions.length === 1) {
+                    // Single condition - use wrapper pattern with white background
+                    const basePatternId = window.patternManager.getPatternForCondition(validConditions[0]);
+                    const wrapperId = `${basePatternId}-with-bg`;
+                    fillStyle = `fill: url(#${wrapperId}); stroke: #333; stroke-width: 2px;`;
+                    console.log(`[Renderer] Individual ${ind.id} - Single condition: "${validConditions[0]}", Wrapper pattern: "${wrapperId}"`);
+                } else {
+                    // Multiple conditions - create composite pattern
+                    const compositePatternId = `composite-${ind.id}`;
+                    fillStyle = `fill: url(#${compositePatternId}); stroke: #333; stroke-width: 2px;`;
+                    
+                    // Store for later composite pattern creation
+                    ind._compositePatternId = compositePatternId;
+                    ind._validConditions = validConditions;
+                    
+                    console.log(`[Renderer] Individual ${ind.id} - Multiple conditions: [${validConditions.join(', ')}], Composite pattern: "${compositePatternId}"`);
+                }
             } else {
+                // No conditions - use white fill
                 fillStyle = `fill: #fff; stroke: #333; stroke-width: 2px;`;
                 console.log(`[Renderer] Individual ${ind.id} - No condition, using white fill`);
             }
         } else {
-            // Use colors for normal mode
-            const color = (ind.condition && ind.condition !== 'None')
-                ? window.patternManager.getColorForCondition(ind.condition)
+            // Use colors for normal mode (use first condition's color if multiple)
+            const color = validConditions.length > 0
+                ? window.patternManager.getColorForCondition(validConditions[0])
                 : '#fff';
             fillStyle = `fill: ${color}; stroke: #333; stroke-width: 2px;`;
         }
-        
         // Get settings or defaults
         const nodeSize = window.genogramSettings ? parseInt(window.genogramSettings.nodeSize) : 40;
         
@@ -537,15 +581,91 @@ function renderGenogram(data) {
     
     // Add defs for patterns before rendering (must be at SVG level)
     const defs = svg.append("defs");
-    
     // Define patterns for different conditions (grayscale mode)
     if (isGrayscale) {
         console.log(`[Renderer] Grayscale mode enabled. Creating ${conditions.length} patterns for conditions:`, conditions);
-        conditions.forEach(cond => {
+        
+        // Create all base patterns first (wait for them to load)
+        const patternPromises = conditions.map(cond => {
             const patternId = window.patternManager.getPatternForCondition(cond);
             console.log(`[Renderer] Creating pattern for condition "${cond}": ${patternId}`);
-            window.patternManager.createSVGPattern(defs, patternId);
+            return window.patternManager.createSVGPattern(defs, patternId);
         });
+        
+        // Wait for all patterns to be created
+        await Promise.all(patternPromises);
+        console.log(`[Renderer] All base patterns created`);
+        
+        // Create wrapper patterns with white backgrounds for single conditions
+        conditions.forEach(cond => {
+            const basePatternId = window.patternManager.getPatternForCondition(cond);
+            const wrapperId = `${basePatternId}-with-bg`;
+            
+            console.log(`[Renderer] Creating wrapper pattern "${wrapperId}" with white background for single condition use`);
+            
+            const wrapperPattern = defs.append("pattern")
+                .attr("id", wrapperId)
+                .attr("patternUnits", "objectBoundingBox")
+                .attr("patternContentUnits", "objectBoundingBox")
+                .attr("width", "1")
+                .attr("height", "1");
+            
+            // Add white background first (Pattern 0)
+            wrapperPattern.append("rect")
+                .attr("x", "0")
+                .attr("y", "0")
+                .attr("width", "1")
+                .attr("height", "1")
+                .attr("fill", "white")
+                .attr("fill-opacity", "1");
+            
+            // Overlay the base pattern on top
+            wrapperPattern.append("rect")
+                .attr("x", "0")
+                .attr("y", "0")
+                .attr("width", "1")
+                .attr("height", "1")
+                .attr("fill", `url(#${basePatternId})`);
+        });
+        
+        // Now create composite patterns for individuals with multiple conditions
+        sortedIndividuals.forEach(ind => {
+            if (ind._compositePatternId && ind._validConditions && ind._validConditions.length > 1) {
+                console.log(`[Renderer] Creating composite pattern "${ind._compositePatternId}" for conditions: [${ind._validConditions.join(', ')}]`);
+                
+                // Create a composite pattern that layers all condition patterns
+                const compositePattern = defs.append("pattern")
+                    .attr("id", ind._compositePatternId)
+                    .attr("patternUnits", "objectBoundingBox")
+                    .attr("patternContentUnits", "objectBoundingBox")
+                    .attr("width", "1")
+                    .attr("height", "1");
+                
+                // Add white background first (Pattern 0)
+                compositePattern.append("rect")
+                    .attr("x", "0")
+                    .attr("y", "0")
+                    .attr("width", "1")
+                    .attr("height", "1")
+                    .attr("fill", "white")
+                    .attr("fill-opacity", "1");
+                
+                // Overlay each pattern on top (these have transparent whites)
+                ind._validConditions.forEach(cond => {
+                    const patternId = window.patternManager.getPatternForCondition(cond);
+                    console.log(`  - Overlaying pattern "${patternId}" for condition "${cond}"`);
+                    compositePattern.append("rect")
+                        .attr("x", "0")
+                        .attr("y", "0")
+                        .attr("width", "1")
+                        .attr("height", "1")
+                        .attr("fill", `url(#${patternId})`);
+                });
+                
+                console.log(`[Renderer] ✓ Composite pattern "${ind._compositePatternId}" created successfully`);
+            }
+        });
+        
         console.log(`[Renderer] All SVG patterns created in <defs>`);
     } else {
         console.log(`[Renderer] Color mode enabled, no patterns needed`);
@@ -687,17 +807,22 @@ function renderGenogram(data) {
             currentYOffset += lineHeight;
         }
         
-        // Display Condition if enabled
-        if (window.showConditions && node.condition && node.condition !== 'None' && node.condition !== '') {
-            el.append("text")
-                .attr("x", xLeft)
-                .attr("y", currentYOffset)
-                .text(node.condition)
-                .style("font-size", fontSize + "px")
-                .style("font-family", fontFamily)
-                .style("text-anchor", "end")
-                .style("fill", "#e11d48");
-            currentYOffset += lineHeight;
+        // Display Condition(s) if enabled
+        if (window.showConditions && node.condition) {
+            const displayConditions = Array.isArray(node.condition) ? node.condition : [node.condition];
+            const validDisplayConditions = displayConditions.filter(c => c !== 'None' && c !== '');
+            
+            if (validDisplayConditions.length > 0) {
+                el.append("text")
+                    .attr("x", xLeft)
+                    .attr("y", currentYOffset)
+                    .text(validDisplayConditions.join(', '))
+                    .style("font-size", fontSize + "px")
+                    .style("font-family", fontFamily)
+                    .style("text-anchor", "end")
+                    .style("fill", "#e11d48");
+                currentYOffset += lineHeight;
+            }
         }
 
         // Display Notes to the right with wrapping if enabled
@@ -794,6 +919,9 @@ function renderGenogram(data) {
     // Initialize zoom level display
     updateZoomLevel(1);
 }
+
+// Make renderGenogram available globally
+window.renderGenogram = renderGenogram;
 
 function updateZoomLevel(scale) {
     const zoomLevelDiv = document.getElementById('zoomLevel');

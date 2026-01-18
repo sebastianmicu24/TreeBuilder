@@ -40,12 +40,22 @@ function parseCSV(text) {
 
         const [roleStr, id, sex, notes, dead, condition] = row;
         
+        // Parse conditions: split by comma if multiple conditions present
+        let parsedCondition;
+        if (condition && condition !== "None" && condition !== "") {
+            // Check if comma-separated
+            const conditionList = condition.split(',').map(c => c.trim()).filter(c => c !== '' && c !== 'None');
+            parsedCondition = conditionList.length > 1 ? conditionList : (conditionList[0] || "None");
+        } else {
+            parsedCondition = "None";
+        }
+        
         individuals[id] = {
             id: id,
             sex: sex,
             notes: notes,
             dead: dead === '1',
-            condition: condition || "None",
+            condition: parsedCondition, // Can be string or array of strings
             roleStr: roleStr // Store for second pass
         };
     }

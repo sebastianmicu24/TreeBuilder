@@ -192,12 +192,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 });
 
-function processData(text) {
+async function processData(text) {
     const individuals = parseCSV(text);
     populateTable(individuals);
     const data = buildGraphData(individuals);
     currentData = data;
-    renderGenogram(data);
+    await renderGenogram(data);
 }
 
 function populateTable(individuals) {
@@ -255,11 +255,11 @@ function updateSettings() {
     };
 }
 
-function updateGraph() {
+async function updateGraph() {
     const data = getTableData();
     const graphData = buildGraphData(data);
     currentData = graphData;
-    renderGenogram(graphData);
+    await renderGenogram(graphData);
 }
 
 function exportToPng() {
@@ -407,12 +407,22 @@ function getTableData() {
 
         if (!id) return; // Skip empty rows
 
+        // Parse conditions: split by comma if multiple conditions present
+        let parsedCondition;
+        if (condition && condition !== "None" && condition !== "") {
+            // Check if comma-separated
+            const conditionList = condition.split(',').map(c => c.trim()).filter(c => c !== '' && c !== 'None');
+            parsedCondition = conditionList.length > 1 ? conditionList : (conditionList[0] || "None");
+        } else {
+            parsedCondition = "None";
+        }
+        
         individuals[id] = {
             id: id,
             sex: sex,
             notes: notes,
             dead: dead === '1',
-            condition: condition || "None",
+            condition: parsedCondition, // Can be string or array of strings
             roleStr: roleStr
         };
     });
