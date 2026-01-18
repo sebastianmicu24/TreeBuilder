@@ -542,32 +542,69 @@ function savePersonEdit() {
     closeEditModal();
     updateGraph();
 }
+var currentAddRelationType = null;
+var currentAddRelatedToPerson = null;
 
 function addRelated(relationType) {
     if (!currentEditingPerson) return;
     
-    const newId = prompt(`Enter ID for new ${relationType}:`);
-    if (!newId) return;
+    currentAddRelationType = relationType;
+    currentAddRelatedToPerson = currentEditingPerson;
     
-    const sex = prompt('Enter sex (M/F/Unknown):', relationType === 'Parent' ? 'M' : 'F');
-    const notes = prompt('Enter notes:', '');
+    // Update modal info
+    document.getElementById('addRelatedToName').textContent = currentEditingPerson;
+    document.getElementById('addRelatedType').textContent = relationType;
+    
+    // Reset form fields
+    document.getElementById('addRelatedId').value = '';
+    document.getElementById('addRelatedSex').value = relationType === 'Parent' ? 'M' : 'F';
+    document.getElementById('addRelatedNotes').value = '';
+    document.getElementById('addRelatedDead').checked = false;
+    document.getElementById('addRelatedGeneticTesting').checked = false;
+    document.getElementById('addRelatedCondition').value = 'None';
+    
+    // Open the modal
+    document.getElementById('addRelatedModal').classList.add('active');
+}
+
+function closeAddRelatedModal() {
+    document.getElementById('addRelatedModal').classList.remove('active');
+    currentAddRelationType = null;
+    currentAddRelatedToPerson = null;
+}
+
+function saveAddRelated() {
+    const newId = document.getElementById('addRelatedId').value.trim();
+    
+    if (!newId) {
+        alert('Please enter an ID/Name for the new person');
+        return;
+    }
+    
+    const sex = document.getElementById('addRelatedSex').value;
+    const notes = document.getElementById('addRelatedNotes').value.trim() || '';
+    const dead = document.getElementById('addRelatedDead').checked ? '1' : '0';
+    const geneticTesting = document.getElementById('addRelatedGeneticTesting').checked ? '1' : '0';
+    const condition = document.getElementById('addRelatedCondition').value.trim() || 'None';
     
     let roleStr = '';
-    switch(relationType) {
+    switch(currentAddRelationType) {
         case 'Parent':
-            roleStr = `Parent("${currentEditingPerson}")`;
+            roleStr = `Parent("${currentAddRelatedToPerson}")`;
             break;
         case 'Child':
-            roleStr = `Child("${currentEditingPerson}")`;
+            roleStr = `Child("${currentAddRelatedToPerson}")`;
             break;
         case 'Sibling':
-            roleStr = `Sibling("${currentEditingPerson}")`;
+            roleStr = `Sibling("${currentAddRelatedToPerson}")`;
             break;
         case 'Partner':
-            roleStr = `Partner("${currentEditingPerson}")`;
+            roleStr = `Partner("${currentAddRelatedToPerson}")`;
             break;
     }
-    addTableRow([roleStr, newId, sex, notes, '0', 'None', '0']);
+    
+    addTableRow([roleStr, newId, sex, notes, dead, condition, geneticTesting]);
+    closeAddRelatedModal();
     closeEditModal();
     updateGraph();
 }

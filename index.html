@@ -230,6 +230,70 @@
                 </div>
             </div>
         </div>
+
+        <!-- Add Related Person Modal -->
+        <div id="addRelatedModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                    <h2 style="color: white;">
+                        <span style="font-size: 1.2em;">➕</span> Add Related Person
+                    </h2>
+                    <button class="modal-close" onclick="closeAddRelatedModal()" style="color: white;">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group" style="background: #f0fdf4; padding: 12px; border-radius: 6px; margin-bottom: 20px; border-left: 4px solid #10b981;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 1.5em;">ℹ️</span>
+                            <div>
+                                <strong>Adding relation to:</strong> <span id="addRelatedToName" style="color: #059669; font-weight: bold;"></span><br>
+                                <small style="color: #065f46;">Relationship: <span id="addRelatedType" style="font-weight: 600;"></span></small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>ID/Name: <span style="color: #dc2626;">*</span></label>
+                        <input type="text" id="addRelatedId" placeholder="Enter unique identifier">
+                    </div>
+                    <div class="form-group">
+                        <label>Sex: <span style="color: #dc2626;">*</span></label>
+                        <select id="addRelatedSex">
+                            <option value="M">Male</option>
+                            <option value="F">Female</option>
+                            <option value="Unknown">Unknown</option>
+                            <option value="Abortion">Abortion</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Notes:</label>
+                        <input type="text" id="addRelatedNotes" placeholder="Optional notes">
+                    </div>
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="addRelatedDead">
+                            <span>Deceased</span>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="addRelatedGeneticTesting">
+                            <span>Genetic Testing Done</span>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>Condition:</label>
+                        <input type="text" id="addRelatedCondition" placeholder="None" value="None">
+                        <small style="color: #64748b; display: block; margin-top: 4px;">Separate multiple conditions with commas</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn secondary" onclick="closeAddRelatedModal()">Cancel</button>
+                    <button class="btn primary" onclick="saveAddRelated()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                        ➕ Add Person
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="js/parser.js"></script>
