@@ -677,7 +677,7 @@ td[contenteditable="true"]:focus {
 
 .toggle-switch input[type="checkbox"]:checked ~ .toggle-label-right {
     color: var(--text-primary);
-    font-weight: 600;
+    font-weight: 600;}
 
 /* Display Options */
 .display-options {
@@ -712,6 +712,162 @@ td[contenteditable="true"]:focus {
     cursor: pointer;
 }
 
+
+/* ===== Setup Form Modal ===== */
+.setup-form-modal {
+    max-width: 480px;
+    width: 92%;
+}
+
+.setup-header {
+    flex-direction: row;
+    align-items: flex-start;
+}
+
+.setup-header h2 {
+    font-size: 1.1rem;
+}
+
+.setup-subtitle {
+    margin: 3px 0 0 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+
+.setup-form-body {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 24px !important;
+}
+
+/* Fieldset sections */
+.setup-fieldset {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.setup-fieldset-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Segmented control for generations */
+.setup-segmented-control {
+    display: flex;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+}
+
+.setup-segment {
+    flex: 1;
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+}
+
+.setup-segment input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.setup-segment span {
+    display: block;
+    text-align: center;
+    padding: 8px 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    border-radius: 6px;
+    transition: all 0.15s ease;
+}
+
+.setup-segment:hover span {
+    color: var(--text-primary);
+}
+
+.setup-segment input[type="radio"]:checked + span {
+    background: white;
+    color: var(--text-primary);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+/* Input grid for sibling counts */
+.setup-input-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+}
+
+.setup-input-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.setup-input-cell label {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.setup-input-cell input[type="number"] {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-family: inherit;
+    text-align: center;
+    color: var(--text-primary);
+    background: white;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.setup-input-cell input[type="number"]::-webkit-outer-spin-button,
+.setup-input-cell input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.setup-input-cell input[type="number"]::placeholder {
+    color: #cbd5e1;
+}
+
+.setup-input-cell input[type="number"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+/* Footer */
+.setup-footer {
+    background: var(--bg-color);
+}
+
+.setup-build-btn {
+    background-color: var(--primary-color) !important;
+    color: white !important;
+    font-weight: 600;
+    padding: 9px 24px !important;
+}
+
+.setup-build-btn:hover {
+    background-color: var(--primary-hover) !important;
+}
 
 /* Mobile Responsive Styles */
 @media (max-width: 768px) {

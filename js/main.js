@@ -33,20 +33,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Handle Add Row
     document.getElementById('addRowBtn').addEventListener('click', function() {
-        addTableRow(['', '', '', '', '0', 'None', '0']);
+        addTableRow(['', '', '', '', '0', 'None', '0', '0']);
     });
 
-    // Handle Tree Presets
-    document.getElementById('presetPatientBtn').addEventListener('click', function() {
-        loadPresetTree('patient');
-    });
-    
-    document.getElementById('presetGrandparentsBtn').addEventListener('click', function() {
-        loadPresetTree('grandparents');
-    });
-    
-    document.getElementById('presetGreatGrandparentsBtn').addEventListener('click', function() {
-        loadPresetTree('greatgrandparents');
+    // Handle New Tree button
+    document.getElementById('newTreeBtn').addEventListener('click', function() {
+        openSetupWizard();
     });
 
     // Handle Settings Changes with debouncing
@@ -185,22 +177,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Try to load default data.csv (will fail if CORS is blocked, e.g. file:// protocol)
-    fetch("data.csv")
-        .then(response => {
-            if (!response.ok) throw new Error("Network response was not ok");
-            return response.text();
-        })
-        .then(text => {
-            processData(text);
-        })
-        .catch(error => {
-            console.log("Could not load default data.csv (likely CORS or file not found). Please use file upload.");
-            // Initialize empty table if load fails
-            addTableRow(['Patient', 'John', 'M', 'Patient', '0', 'None', '0']);
-            addTableRow(['Partner("John")', 'Mary', 'F', 'Wife', '0', 'None', '0']);
-            addTableRow(['Child("John")', 'Bob', 'M', 'Son', '0', 'None', '0']);
-        });
+    // Open setup wizard on first load
+    openSetupWizard();
 });
 
 async function processData(text) {
@@ -222,7 +200,8 @@ function populateTable(individuals) {
             ind.notes,
             ind.dead ? '1' : '0',
             ind.condition,
-            ind.geneticTesting ? '1' : '0'
+            ind.geneticTesting ? '1' : '0',
+            ind.siblingOrder !== undefined ? String(ind.siblingOrder) : '0'
         ]);
     });
 }
@@ -402,13 +381,12 @@ function exportToPng() {
         document.body.removeChild(downloadLink);
     };
 }
-
 function getTableData() {
     const individuals = {};
     const rows = document.querySelectorAll('#dataTable tbody tr');
     rows.forEach(row => {
         const cells = row.querySelectorAll('td');
-        if (cells.length < 7) return;
+        if (cells.length < 8) return;
 
         const roleStr = cells[0].textContent.trim();
         const id = cells[1].textContent.trim();
@@ -417,6 +395,7 @@ function getTableData() {
         const dead = cells[4].textContent.trim();
         const condition = cells[5].textContent.trim();
         const geneticTesting = cells[6].textContent.trim();
+        const siblingOrder = cells[7].textContent.trim();
 
         if (!id) return; // Skip empty rows
 
@@ -437,6 +416,7 @@ function getTableData() {
             dead: dead === '1',
             condition: parsedCondition, // Can be string or array of strings
             geneticTesting: geneticTesting === '1',
+            siblingOrder: siblingOrder ? parseInt(siblingOrder) || 0 : 0,
             roleStr: roleStr
         };
     });
@@ -445,11 +425,11 @@ function getTableData() {
 }
 function downloadCsv() {
     const rows = document.querySelectorAll('#dataTable tbody tr');
-    let csvContent = 'Role;Id;Sex;Notes;Dead;Condition;GeneticTesting\n';
+    let csvContent = 'Role;Id;Sex;Notes;Dead;Condition;GeneticTesting;SiblingOrder\n';
     
     rows.forEach(row => {
         const cells = row.querySelectorAll('td');
-        if (cells.length < 7) return;
+        if (cells.length < 8) return;
         
         const roleStr = cells[0].textContent.trim();
         const id = cells[1].textContent.trim();
@@ -458,6 +438,7 @@ function downloadCsv() {
         const dead = cells[4].textContent.trim();
         const condition = cells[5].textContent.trim();
         const geneticTesting = cells[6].textContent.trim();
+        const siblingOrder = cells[7].textContent.trim();
         
         if (!id) return; // Skip empty rows
         
@@ -467,7 +448,7 @@ function downloadCsv() {
         const quotedNotes = notes.includes(';') ? `"${notes}"` : `"${notes}"`;
         const quotedCondition = condition.includes(';') ? `"${condition}"` : condition;
         
-        csvContent += `${quotedRole};${quotedId};${sex};${quotedNotes};${dead};${quotedCondition};${geneticTesting}\n`;
+        csvContent += `${quotedRole};${quotedId};${sex};${quotedNotes};${dead};${quotedCondition};${geneticTesting};${siblingOrder}\n`;
     });
     
     // Create blob and download
@@ -499,7 +480,8 @@ function openEditModal(personId) {
                 notes: cells[3].textContent.trim(),
                 dead: cells[4].textContent.trim() === '1',
                 condition: cells[5].textContent.trim(),
-                geneticTesting: cells[6].textContent.trim() === '1'
+                geneticTesting: cells[6].textContent.trim() === '1',
+                siblingOrder: cells[7]?.textContent.trim() || '0'
             };
         }
     });
@@ -513,7 +495,7 @@ function openEditModal(personId) {
     document.getElementById('editDead').checked = personData.dead;
     document.getElementById('editGeneticTesting').checked = personData.geneticTesting;
     document.getElementById('editCondition').value = personData.condition;
-    document.getElementById('editRole').value = personData.role;
+    document.getElementById('editSiblingOrder').value = personData.siblingOrder;
     
     document.getElementById('editModal').classList.add('active');
 }
@@ -526,16 +508,52 @@ function closeEditModal() {
 function savePersonEdit() {
     if (!currentEditingPerson) return;
     
+    const newId = document.getElementById('editId').value.trim();
+    if (!newId) {
+        alert('ID cannot be empty');
+        return;
+    }
+    
+    // Check uniqueness if ID changed
+    if (newId !== currentEditingPerson) {
+        const rows = document.querySelectorAll('#dataTable tbody tr');
+        let idExists = false;
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            const existingId = cells[1]?.textContent.trim();
+            if (existingId === newId) {
+                idExists = true;
+            }
+        });
+        if (idExists) {
+            alert('ID "' + newId + '" already exists. Please choose a unique ID.');
+            return;
+        }
+    }
+    
     const rows = document.querySelectorAll('#dataTable tbody tr');
     rows.forEach(row => {
         const cells = row.querySelectorAll('td');
         const id = cells[1]?.textContent.trim();
         if (id === currentEditingPerson) {
+            cells[1].textContent = newId;
             cells[2].textContent = document.getElementById('editSex').value;
             cells[3].textContent = document.getElementById('editNotes').value;
             cells[4].textContent = document.getElementById('editDead').checked ? '1' : '0';
             cells[5].textContent = document.getElementById('editCondition').value;
             cells[6].textContent = document.getElementById('editGeneticTesting').checked ? '1' : '0';
+            cells[7].textContent = document.getElementById('editSiblingOrder').value || '0';
+        }
+        
+        // Update role references if ID changed
+        if (newId !== currentEditingPerson) {
+            const roleStr = cells[0]?.textContent.trim();
+            if (roleStr && roleStr.includes('"' + currentEditingPerson + '"')) {
+                cells[0].textContent = roleStr.replace(
+                    new RegExp('"' + currentEditingPerson.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '"', 'g'),
+                    '"' + newId + '"'
+                );
+            }
         }
     });
     
@@ -562,6 +580,7 @@ function addRelated(relationType) {
     document.getElementById('addRelatedDead').checked = false;
     document.getElementById('addRelatedGeneticTesting').checked = false;
     document.getElementById('addRelatedCondition').value = 'None';
+    document.getElementById('addRelatedSiblingOrder').value = '0';
     
     // Open the modal
     document.getElementById('addRelatedModal').classList.add('active');
@@ -586,6 +605,7 @@ function saveAddRelated() {
     const dead = document.getElementById('addRelatedDead').checked ? '1' : '0';
     const geneticTesting = document.getElementById('addRelatedGeneticTesting').checked ? '1' : '0';
     const condition = document.getElementById('addRelatedCondition').value.trim() || 'None';
+    const siblingOrder = document.getElementById('addRelatedSiblingOrder').value || '0';
     
     let roleStr = '';
     switch(currentAddRelationType) {
@@ -603,62 +623,133 @@ function saveAddRelated() {
             break;
     }
     
-    addTableRow([roleStr, newId, sex, notes, dead, condition, geneticTesting]);
+    addTableRow([roleStr, newId, sex, notes, dead, condition, geneticTesting, siblingOrder]);
     closeAddRelatedModal();
     closeEditModal();
     updateGraph();
 }
 
-function loadPresetTree(presetType) {
+// ===== Setup Form =====
+function openSetupWizard() {
+    // Reset all inputs to empty
+    document.querySelectorAll('#setupWizardModal input[type="number"]').forEach(input => input.value = '');
+    document.querySelector('input[name="detailLevel"][value="parents"]').checked = true;
+    document.querySelector('input[name="patientSex"][value="M"]').checked = true;
+    document.getElementById('setupWizardModal').classList.add('active');
+}
+
+function closeSetupWizard() {
+    document.getElementById('setupWizardModal').classList.remove('active');
+}
+
+function wizardBuild() {
+    const detailLevel = document.querySelector('input[name="detailLevel"]:checked').value;
+    const patientSex = document.querySelector('input[name="patientSex"]:checked').value;
+    
+    const patientBrothers = parseInt(document.getElementById('wizPatientBrothers').value) || 0;
+    const patientSisters = parseInt(document.getElementById('wizPatientSisters').value) || 0;
+    const patientUnknown = parseInt(document.getElementById('wizPatientUnknown').value) || 0;
+    
+    const patientChildrenMale = parseInt(document.getElementById('wizPatientChildrenMale').value) || 0;
+    const patientChildrenFemale = parseInt(document.getElementById('wizPatientChildrenFemale').value) || 0;
+    const patientChildrenUnknown = parseInt(document.getElementById('wizPatientChildrenUnknown').value) || 0;
+    
+    const fatherBrothers = parseInt(document.getElementById('wizFatherBrothers').value) || 0;
+    const fatherSisters = parseInt(document.getElementById('wizFatherSisters').value) || 0;
+    const fatherUnknown = parseInt(document.getElementById('wizFatherUnknown').value) || 0;
+    
+    const motherBrothers = parseInt(document.getElementById('wizMotherBrothers').value) || 0;
+    const motherSisters = parseInt(document.getElementById('wizMotherSisters').value) || 0;
+    const motherUnknown = parseInt(document.getElementById('wizMotherUnknown').value) || 0;
+    
     const tbody = document.querySelector('#dataTable tbody');
     tbody.innerHTML = '';
     
-    if (presetType === 'patient') {
-        // Only patient
-        addTableRow(['Patient', 'Patient', 'M', 'Proband', '0', 'None', '0']);
-    } else if (presetType === 'grandparents') {
-        // Patient, parents, and 4 grandparents
-        addTableRow(['Patient', 'Patient', 'M', 'Proband', '0', 'None', '0']);
-        
-        // Parents
-        addTableRow(['Parent("Patient")', 'Father', 'M', 'Father', '0', 'None', '0']);
-        addTableRow(['Parent("Patient")', 'Mother', 'F', 'Mother', '0', 'None', '0']);
-        
-        // Paternal grandparents
-        addTableRow(['Parent("Father")', 'GF_P', 'M', 'Paternal Grandfather', '0', 'None', '0']);
-        addTableRow(['Parent("Father")', 'GM_P', 'F', 'Paternal Grandmother', '0', 'None', '0']);
-        
-        // Maternal grandparents
-        addTableRow(['Parent("Mother")', 'GF_M', 'M', 'Maternal Grandfather', '0', 'None', '0']);
-        addTableRow(['Parent("Mother")', 'GM_M', 'F', 'Maternal Grandmother', '0', 'None', '0']);
-    } else if (presetType === 'greatgrandparents') {
-        // Patient, parents, 4 grandparents, and 8 great-grandparents
-        addTableRow(['Patient', 'Patient', 'M', 'Proband', '0', 'None', '0']);
-        
-        // Parents
-        addTableRow(['Parent("Patient")', 'Father', 'M', 'Father', '0', 'None', '0']);
-        addTableRow(['Parent("Patient")', 'Mother', 'F', 'Mother', '0', 'None', '0']);
-        
-        // Paternal grandparents
-        addTableRow(['Parent("Father")', 'GF_P', 'M', 'Paternal Grandfather', '0', 'None', '0']);
-        addTableRow(['Parent("Father")', 'GM_P', 'F', 'Paternal Grandmother', '0', 'None', '0']);
-        
-        // Maternal grandparents
-        addTableRow(['Parent("Mother")', 'GF_M', 'M', 'Maternal Grandfather', '0', 'None', '0']);
-        addTableRow(['Parent("Mother")', 'GM_M', 'F', 'Maternal Grandmother', '0', 'None', '0']);
-        
-        // Paternal great-grandparents (father's side)
-        addTableRow(['Parent("GF_P")', 'GGF_PP', 'M', 'Great-Grandfather (PP)', '0', 'None', '0']);
-        addTableRow(['Parent("GF_P")', 'GGM_PP', 'F', 'Great-Grandmother (PP)', '0', 'None', '0']);
-        addTableRow(['Parent("GM_P")', 'GGF_PM', 'M', 'Great-Grandfather (PM)', '0', 'None', '0']);
-        addTableRow(['Parent("GM_P")', 'GGM_PM', 'F', 'Great-Grandmother (PM)', '0', 'None', '0']);
-        
-        // Maternal great-grandparents (mother's side)
-        addTableRow(['Parent("GF_M")', 'GGF_MP', 'M', 'Great-Grandfather (MP)', '0', 'None', '0']);
-        addTableRow(['Parent("GF_M")', 'GGM_MP', 'F', 'Great-Grandmother (MP)', '0', 'None', '0']);
-        addTableRow(['Parent("GM_M")', 'GGF_MM', 'M', 'Great-Grandfather (MM)', '0', 'None', '0']);
-        addTableRow(['Parent("GM_M")', 'GGM_MM', 'F', 'Great-Grandmother (MM)', '0', 'None', '0']);
+    // Always add Patient and Parents
+    addTableRow(['Patient', 'Patient', patientSex, 'Proband', '0', 'None', '0', '0']);
+    addTableRow(['Parent("Patient")', 'Father', 'M', 'Father', '0', 'None', '0', '0']);
+    addTableRow(['Parent("Patient")', 'Mother', 'F', 'Mother', '0', 'None', '0', '0']);
+    
+    // Patient's siblings
+    let sibOrder = 2; // Patient is implicitly 1
+    for (let i = 1; i <= patientBrothers; i++) {
+        const id = 'Brother' + i;
+        addTableRow(['Sibling("Patient")', id, 'M', 'Brother ' + i, '0', 'None', '0', String(sibOrder++)]);
+    }
+    for (let i = 1; i <= patientSisters; i++) {
+        const id = 'Sister' + i;
+        addTableRow(['Sibling("Patient")', id, 'F', 'Sister ' + i, '0', 'None', '0', String(sibOrder++)]);
+    }
+    for (let i = 1; i <= patientUnknown; i++) {
+        const id = 'Sibling' + i;
+        addTableRow(['Sibling("Patient")', id, 'Unknown', 'Sibling ' + i, '0', 'None', '0', String(sibOrder++)]);
     }
     
+    // Father's siblings
+    let fSibOrder = 2;
+    for (let i = 1; i <= fatherBrothers; i++) {
+        const id = 'Paternal Uncle' + i;
+        addTableRow(['Sibling("Father")', id, 'M', 'Paternal Uncle ' + i, '0', 'None', '0', String(fSibOrder++)]);
+    }
+    for (let i = 1; i <= fatherSisters; i++) {
+        const id = 'Paternal Aunt' + i;
+        addTableRow(['Sibling("Father")', id, 'F', 'Paternal Aunt ' + i, '0', 'None', '0', String(fSibOrder++)]);
+    }
+    for (let i = 1; i <= fatherUnknown; i++) {
+        const id = 'Paternal Sibling' + i;
+        addTableRow(['Sibling("Father")', id, 'Unknown', 'Paternal Sibling ' + i, '0', 'None', '0', String(fSibOrder++)]);
+    }
+    
+    // Mother's siblings
+    let mSibOrder = 2;
+    for (let i = 1; i <= motherBrothers; i++) {
+        const id = 'Maternal Uncle' + i;
+        addTableRow(['Sibling("Mother")', id, 'M', 'Maternal Uncle ' + i, '0', 'None', '0', String(mSibOrder++)]);
+    }
+    for (let i = 1; i <= motherSisters; i++) {
+        const id = 'Maternal Aunt' + i;
+        addTableRow(['Sibling("Mother")', id, 'F', 'Maternal Aunt ' + i, '0', 'None', '0', String(mSibOrder++)]);
+    }
+    for (let i = 1; i <= motherUnknown; i++) {
+        const id = 'Maternal Sibling' + i;
+        addTableRow(['Sibling("Mother")', id, 'Unknown', 'Maternal Sibling ' + i, '0', 'None', '0', String(mSibOrder++)]);
+    }
+    
+    // Patient's children
+    let childOrder = 1;
+    for (let i = 1; i <= patientChildrenMale; i++) {
+        const id = 'Son' + i;
+        addTableRow(['Child("Patient")', id, 'M', 'Son ' + i, '0', 'None', '0', String(childOrder++)]);
+    }
+    for (let i = 1; i <= patientChildrenFemale; i++) {
+        const id = 'Daughter' + i;
+        addTableRow(['Child("Patient")', id, 'F', 'Daughter ' + i, '0', 'None', '0', String(childOrder++)]);
+    }
+    for (let i = 1; i <= patientChildrenUnknown; i++) {
+        const id = 'Child' + i;
+        addTableRow(['Child("Patient")', id, 'Unknown', 'Child ' + i, '0', 'None', '0', String(childOrder++)]);
+    }
+    
+    // Grandparents (if detail level includes them)
+    if (detailLevel === 'grandparents' || detailLevel === 'greatgrandparents') {
+        addTableRow(['Parent("Father")', 'GF_P', 'M', 'Paternal Grandfather', '0', 'None', '0', '0']);
+        addTableRow(['Parent("Father")', 'GM_P', 'F', 'Paternal Grandmother', '0', 'None', '0', '0']);
+        addTableRow(['Parent("Mother")', 'GF_M', 'M', 'Maternal Grandfather', '0', 'None', '0', '0']);
+        addTableRow(['Parent("Mother")', 'GM_M', 'F', 'Maternal Grandmother', '0', 'None', '0', '0']);
+    }
+    
+    // Great-grandparents
+    if (detailLevel === 'greatgrandparents') {
+        addTableRow(['Parent("GF_P")', 'GGF_PP', 'M', 'Great-Grandfather (PP)', '0', 'None', '0', '0']);
+        addTableRow(['Parent("GF_P")', 'GGM_PP', 'F', 'Great-Grandmother (PP)', '0', 'None', '0', '0']);
+        addTableRow(['Parent("GM_P")', 'GGF_PM', 'M', 'Great-Grandfather (PM)', '0', 'None', '0', '0']);
+        addTableRow(['Parent("GM_P")', 'GGM_PM', 'F', 'Great-Grandmother (PM)', '0', 'None', '0', '0']);
+        addTableRow(['Parent("GF_M")', 'GGF_MP', 'M', 'Great-Grandfather (MP)', '0', 'None', '0', '0']);
+        addTableRow(['Parent("GF_M")', 'GGM_MP', 'F', 'Great-Grandmother (MP)', '0', 'None', '0', '0']);
+        addTableRow(['Parent("GM_M")', 'GGF_MM', 'M', 'Great-Grandfather (MM)', '0', 'None', '0', '0']);
+        addTableRow(['Parent("GM_M")', 'GGM_MM', 'F', 'Great-Grandmother (MM)', '0', 'None', '0', '0']);
+    }
+    
+    closeSetupWizard();
     updateGraph();
 }

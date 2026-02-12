@@ -18,12 +18,9 @@
             </div>
             
             <div class="sidebar-content">
-                <section class="panel collapsible collapsed">
-                    <h2>Tree Presets</h2>
+                <section class="panel">
                     <div class="control-group" style="flex-direction: column; gap: 8px;">
-                        <button id="presetPatientBtn" class="btn secondary full-width">Patient Only</button>
-                        <button id="presetGrandparentsBtn" class="btn secondary full-width">Patient + Grandparents</button>
-                        <button id="presetGreatGrandparentsBtn" class="btn secondary full-width">Patient + Great-Grandparents</button>
+                        <button id="newTreeBtn" class="btn primary full-width" style="background-color: var(--primary-color); color: white; border: none; font-weight: 600;">New Tree</button>
                     </div>
                 </section>
 
@@ -143,6 +140,7 @@
                                     <th>Dead</th>
                                     <th>Condition</th>
                                     <th>Genetic Test</th>
+                                    <th>Sib. Order</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -183,7 +181,8 @@
                 <div class="modal-body">
                     <div class="form-group">
                         <label>ID:</label>
-                        <input type="text" id="editId" readonly>
+                        <input type="text" id="editId">
+                        <small style="color: #64748b; display: block; margin-top: 4px;">Must be unique across all persons</small>
                     </div>
                     <div class="form-group">
                         <label>Sex:</label>
@@ -211,8 +210,21 @@
                         <input type="text" id="editCondition">
                     </div>
                     <div class="form-group">
-                        <label>Role:</label>
-                        <input type="text" id="editRole" readonly>
+                        <label>Sibling Order:</label>
+                        <select id="editSiblingOrder">
+                            <option value="0">Automatic</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                            <option value="10">10</option>
+                        </select>
+                        <small style="color: #64748b; display: block; margin-top: 4px;">0 = automatic, 1-N = manual left-to-right order</small>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -236,7 +248,7 @@
             <div class="modal-content">
                 <div class="modal-header" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
                     <h2 style="color: white;">
-                        <span style="font-size: 1.2em;">➕</span> Add Related Person
+                        <span style="font-size: 1.5em;">+</span> Add Related Person
                     </h2>
                     <button class="modal-close" onclick="closeAddRelatedModal()" style="color: white;">&times;</button>
                 </div>
@@ -285,12 +297,160 @@
                         <input type="text" id="addRelatedCondition" placeholder="None" value="None">
                         <small style="color: #64748b; display: block; margin-top: 4px;">Separate multiple conditions with commas</small>
                     </div>
+                    <div class="form-group">
+                        <label>Sibling Order:</label>
+                        <select id="addRelatedSiblingOrder">
+                            <option value="0">Automatic</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                            <option value="10">10</option>
+                        </select>
+                        <small style="color: #64748b; display: block; margin-top: 4px;">0 = automatic, 1-N = manual left-to-right order</small>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button class="btn secondary" onclick="closeAddRelatedModal()">Cancel</button>
                     <button class="btn primary" onclick="saveAddRelated()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
-                        ➕ Add Person
+                        ✚ Add Person
                     </button>
+                </div>
+            </div>
+        </div>
+        <!-- Setup Form Modal -->
+        <div id="setupWizardModal" class="modal">
+            <div class="modal-content setup-form-modal">
+                <div class="modal-header setup-header">
+                    <div>
+                        <h2>New Genogram</h2>
+                        <p class="setup-subtitle">Configure the family tree structure</p>
+                    </div>
+                    <button class="modal-close" onclick="closeSetupWizard()">&times;</button>
+                </div>
+                <div class="modal-body setup-form-body">
+                    <!-- Generations -->
+                    <div class="setup-fieldset">
+                        <div class="setup-fieldset-label">Generations</div>
+                        <div class="setup-segmented-control">
+                            <label class="setup-segment">
+                                <input type="radio" name="detailLevel" value="parents" checked>
+                                <span>Parents</span>
+                            </label>
+                            <label class="setup-segment">
+                                <input type="radio" name="detailLevel" value="grandparents">
+                                <span>Grandparents</span>
+                            </label>
+                            <label class="setup-segment">
+                                <input type="radio" name="detailLevel" value="greatgrandparents">
+                                <span>Great-Grandparents</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Patient Sex -->
+                    <div class="setup-fieldset">
+                        <div class="setup-fieldset-label">Patient Sex</div>
+                        <div class="setup-segmented-control">
+                            <label class="setup-segment">
+                                <input type="radio" name="patientSex" value="M" checked>
+                                <span>&#9794; Male</span>
+                            </label>
+                            <label class="setup-segment">
+                                <input type="radio" name="patientSex" value="F">
+                                <span>&#9792; Female</span>
+                            </label>
+                            <label class="setup-segment">
+                                <input type="radio" name="patientSex" value="Unknown">
+                                <span>&#9671; Unknown</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Patient's Children -->
+                    <div class="setup-fieldset">
+                        <div class="setup-fieldset-label">Patient's Children</div>
+                        <div class="setup-input-grid">
+                            <div class="setup-input-cell">
+                                <label>&#9794; Male</label>
+                                <input type="number" id="wizPatientChildrenMale" min="0" placeholder="0">
+                            </div>
+                            <div class="setup-input-cell">
+                                <label>&#9792; Female</label>
+                                <input type="number" id="wizPatientChildrenFemale" min="0" placeholder="0">
+                            </div>
+                            <div class="setup-input-cell">
+                                <label>&#9671; Unknown</label>
+                                <input type="number" id="wizPatientChildrenUnknown" min="0" placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Patient's Siblings -->
+                    <div class="setup-fieldset">
+                        <div class="setup-fieldset-label">Patient's Siblings</div>
+                        <div class="setup-input-grid">
+                            <div class="setup-input-cell">
+                                <label>&#9794; Male</label>
+                                <input type="number" id="wizPatientBrothers" min="0" placeholder="0">
+                            </div>
+                            <div class="setup-input-cell">
+                                <label>&#9792; Female</label>
+                                <input type="number" id="wizPatientSisters" min="0" placeholder="0">
+                            </div>
+                            <div class="setup-input-cell">
+                                <label>&#9671; Unknown</label>
+                                <input type="number" id="wizPatientUnknown" min="0" placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Father's Siblings -->
+                    <div class="setup-fieldset">
+                        <div class="setup-fieldset-label">Father's Siblings</div>
+                        <div class="setup-input-grid">
+                            <div class="setup-input-cell">
+                                <label>&#9794; Male</label>
+                                <input type="number" id="wizFatherBrothers" min="0" placeholder="0">
+                            </div>
+                            <div class="setup-input-cell">
+                                <label>&#9792; Female</label>
+                                <input type="number" id="wizFatherSisters" min="0" placeholder="0">
+                            </div>
+                            <div class="setup-input-cell">
+                                <label>&#9671; Unknown</label>
+                                <input type="number" id="wizFatherUnknown" min="0" placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mother's Siblings -->
+                    <div class="setup-fieldset">
+                        <div class="setup-fieldset-label">Mother's Siblings</div>
+                        <div class="setup-input-grid">
+                            <div class="setup-input-cell">
+                                <label>&#9794; Male</label>
+                                <input type="number" id="wizMotherBrothers" min="0" placeholder="0">
+                            </div>
+                            <div class="setup-input-cell">
+                                <label>&#9792; Female</label>
+                                <input type="number" id="wizMotherSisters" min="0" placeholder="0">
+                            </div>
+                            <div class="setup-input-cell">
+                                <label>&#9671; Unknown</label>
+                                <input type="number" id="wizMotherUnknown" min="0" placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer setup-footer">
+                    <button class="btn secondary" onclick="closeSetupWizard()">Cancel</button>
+                    <button class="btn primary setup-build-btn" onclick="wizardBuild()">Build Tree</button>
                 </div>
             </div>
         </div>

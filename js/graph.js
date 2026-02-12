@@ -179,25 +179,22 @@ function buildGraphData(individuals) {
     };
 
     // Helper function to calculate child value from parents
+    // Uses 4th root instead of square root because:
+    // Father = 2x², Mother = 0.5x², so product = x⁴
+    // ⁴√(x⁴) = x (correct), whereas √(x⁴) = x² (wrong)
     const calculateChildValue = (fatherValue, motherValue, birthOrder) => {
-        // If both parents have values, use the formula
+        // If both parents have values, use the formula with 4th root
         if (fatherValue !== null && motherValue !== null) {
-            return Math.sqrt(fatherValue * motherValue) * (1.0 + 0.1 * birthOrder);
+            return Math.pow(fatherValue * motherValue, 0.25) * (1.0 + 0.1 * birthOrder);
         }
         // If only one parent has a value, estimate the other
         if (fatherValue !== null && motherValue === null) {
-            // Estimate mother's value from father (reverse of father calculation)
-            // If father = 2 × x², then x² = father/2, so x = sqrt(father/2)
-            // Then mother = 0.5 × x² = 0.5 × (father/2) = father/4
             const estimatedMotherValue = fatherValue / 4;
-            return Math.sqrt(fatherValue * estimatedMotherValue) * (1.0 + 0.1 * birthOrder);
+            return Math.pow(fatherValue * estimatedMotherValue, 0.25) * (1.0 + 0.1 * birthOrder);
         }
         if (motherValue !== null && fatherValue === null) {
-            // Estimate father's value from mother (reverse of mother calculation)
-            // If mother = 0.5 × x², then x² = mother/0.5 = 2×mother
-            // Then father = 2 × x² = 2 × (2×mother) = 4×mother
             const estimatedFatherValue = motherValue * 4;
-            return Math.sqrt(estimatedFatherValue * motherValue) * (1.0 + 0.1 * birthOrder);
+            return Math.pow(estimatedFatherValue * motherValue, 0.25) * (1.0 + 0.1 * birthOrder);
         }
         return null;
     };
@@ -272,8 +269,10 @@ function buildGraphData(individuals) {
                     fam.children.forEach((childId, index) => {
                         const child = individuals[childId];
                         if (child && child.value === null) {
-                            // Birth order starts at 1
-                            const birthOrder = index + 1;
+                            // Use siblingOrder if set (non-zero), otherwise use index+1
+                            const birthOrder = (child.siblingOrder && child.siblingOrder > 0)
+                                ? child.siblingOrder
+                                : index + 1;
                             const childValue = calculateChildValue(fatherValue, motherValue, birthOrder);
                             if (childValue !== null) {
                                 child.value = childValue;
@@ -289,12 +288,23 @@ function buildGraphData(individuals) {
     // Run value propagation
     propagateValues();
 
-    // Sort children within each family by their calculated values (descending: higher values first = left to right)
+    // Sort children within each family by siblingOrder first, then by calculated values
     families.forEach(fam => {
         fam.children.sort((aId, bId) => {
+            const aOrder = individuals[aId]?.siblingOrder ?? 0;
+            const bOrder = individuals[bId]?.siblingOrder ?? 0;
+            
+            // If both have explicit sibling orders (non-zero), sort by that
+            if (aOrder !== 0 && bOrder !== 0) {
+                return aOrder - bOrder; // Ascending: lower order = further left
+            }
+            // If only one has an explicit order, it goes first
+            if (aOrder !== 0) return -1;
+            if (bOrder !== 0) return 1;
+            
+            // Fallback: sort by calculated value (descending: higher values = males on left)
             const aValue = individuals[aId]?.value ?? 0;
             const bValue = individuals[bId]?.value ?? 0;
-            // Sort descending (higher values = males on left)
             return bValue - aValue;
         });
     });

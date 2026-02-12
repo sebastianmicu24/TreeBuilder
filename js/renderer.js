@@ -505,54 +505,99 @@ async function renderGenogram(data) {
     });
 
     // Add nodes for families (marriage knots) and edges
+    // Strategy: For each couple, create a "couple node" that sits between the partners.
+    // Partners are connected TO the couple node (not the other way around) to keep them
+    // on the same rank and adjacent. Children connect from the couple node downward.
+    // This prevents dagre from placing siblings between husband and wife.
+    
     families.forEach(fam => {
-        // Create a family node (invisible point)
-        g.setNode(fam.id, {
-            shape: 'circle',
-            label: '',
-            width: 0,
-            height: 0,
-            style: 'fill: none; stroke: none;'
-        });
-
-        // Edges from parents to family node
-        if (fam.father) {
-            g.setEdge(fam.father, fam.id, {
-                arrowhead: 'undirected',
-                style: "stroke: #333; stroke-width: 1.5px; fill: none;"
+        const coupleNodeId = fam.id; // e.g. "fam_Father_Mother"
+        const childHubId = `hub_${fam.id}`; // hub below the couple for children
+        
+        if (fam.father && fam.mother) {
+            // === COUPLE WITH BOTH PARENTS ===
+            // Create an invisible couple node (the marriage point between partners)
+            g.setNode(coupleNodeId, {
+                shape: 'circle',
+                label: '',
+                width: 0,
+                height: 0,
+                style: 'fill: none; stroke: none;',
+                isCoupleNode: true
             });
-        }
-        if (fam.mother) {
-            g.setEdge(fam.mother, fam.id, {
-                arrowhead: 'undirected',
-                style: "stroke: #333; stroke-width: 1.5px; fill: none;"
-            });
-        }
-
-        // Edges from family node to children (already sorted by value in graph.js)
-        // Add edges in order - dagre-d3 will try to maintain this order
-        fam.children.forEach((childId, index) => {
-            g.setEdge(fam.id, childId, {
+            
+            // Connect father -> coupleNode and mother -> coupleNode
+            // Use high weight to keep them close and on the same rank
+            g.setEdge(fam.father, coupleNodeId, {
                 arrowhead: 'undirected',
                 style: "stroke: #333; stroke-width: 1.5px; fill: none;",
-                weight: fam.children.length - index // Higher weight for earlier children (higher values)
+                minlen: 1,
+                weight: 100, // Very high weight to keep couple adjacent
+                isCoupleEdge: true
             });
-        });
-    });
-
-    // Set ordering constraints for siblings based on their values
-    // Group siblings by family and set their order
-    families.forEach(fam => {
-        if (fam.children.length > 1) {
-            // Create ordering constraints between siblings
-            for (let i = 0; i < fam.children.length - 1; i++) {
-                const leftChild = fam.children[i];  // Higher value (should be on left)
-                const rightChild = fam.children[i + 1];  // Lower value (should be on right)
+            g.setEdge(fam.mother, coupleNodeId, {
+                arrowhead: 'undirected',
+                style: "stroke: #333; stroke-width: 1.5px; fill: none;",
+                minlen: 1,
+                weight: 100,
+                isCoupleEdge: true
+            });
+            
+            // If there are children, create a child hub below the couple node
+            if (fam.children.length > 0) {
+                g.setNode(childHubId, {
+                    shape: 'circle',
+                    label: '',
+                    width: 0,
+                    height: 0,
+                    style: 'fill: none; stroke: none;',
+                    isChildHub: true
+                });
                 
-                // Force ordering by setting an invisible edge with minlen
-                // This is a hack but dagre doesn't have a direct "order" constraint
-                // We'll rely on the weight in edges above instead
+                // Connect couple node to child hub
+                g.setEdge(coupleNodeId, childHubId, {
+                    arrowhead: 'undirected',
+                    style: "stroke: #333; stroke-width: 1.5px; fill: none;",
+                    minlen: 1,
+                    weight: 10
+                });
+                
+                // Connect child hub to each child
+                fam.children.forEach((childId, index) => {
+                    g.setEdge(childHubId, childId, {
+                        arrowhead: 'undirected',
+                        style: "stroke: #333; stroke-width: 1.5px; fill: none;",
+                        weight: fam.children.length - index
+                    });
+                });
             }
+        } else {
+            // === SINGLE PARENT (no partner) ===
+            // Just create the family node and connect parent to children through it
+            g.setNode(coupleNodeId, {
+                shape: 'circle',
+                label: '',
+                width: 0,
+                height: 0,
+                style: 'fill: none; stroke: none;'
+            });
+            
+            const parentId = fam.father || fam.mother;
+            if (parentId) {
+                g.setEdge(parentId, coupleNodeId, {
+                    arrowhead: 'undirected',
+                    style: "stroke: #333; stroke-width: 1.5px; fill: none;",
+                    weight: 5
+                });
+            }
+            
+            fam.children.forEach((childId, index) => {
+                g.setEdge(coupleNodeId, childId, {
+                    arrowhead: 'undirected',
+                    style: "stroke: #333; stroke-width: 1.5px; fill: none;",
+                    weight: fam.children.length - index
+                });
+            });
         }
     });
 
@@ -676,53 +721,230 @@ async function renderGenogram(data) {
 
     render(svgGroup, g);
 
+    // ==================== POST-LAYOUT COUPLE ADJACENCY CORRECTION ====================
+    // After dagre computes the layout, we need to ensure that partners in a couple
+    // are always adjacent (no other nodes between them). This is a fundamental genogram rule.
+    // Dagre doesn't understand this constraint, so we fix it in post-processing.
+    
+    (function fixCoupleAdjacency() {
+        // Build a map of node ranks (y-positions group nodes into ranks)
+        const nodePositions = {};
+        g.nodes().forEach(nodeId => {
+            const node = g.node(nodeId);
+            if (node) {
+                nodePositions[nodeId] = { x: node.x, y: node.y, width: node.width, height: node.height };
+            }
+        });
+        
+        // Group nodes by their rank (y-position, with tolerance for floating point)
+        const rankGroups = {};
+        g.nodes().forEach(nodeId => {
+            const node = g.node(nodeId);
+            if (!node) return;
+            // Round y to nearest 5 to group nodes at same rank
+            const rankKey = Math.round(node.y / 5) * 5;
+            if (!rankGroups[rankKey]) rankGroups[rankKey] = [];
+            rankGroups[rankKey].push(nodeId);
+        });
+        
+        // Sort each rank group by x-position
+        Object.keys(rankGroups).forEach(rankKey => {
+            rankGroups[rankKey].sort((a, b) => g.node(a).x - g.node(b).x);
+        });
+        
+        // For each couple, check if they are adjacent in their rank
+        families.forEach(fam => {
+            if (!fam.father || !fam.mother) return;
+            
+            const fatherNode = g.node(fam.father);
+            const motherNode = g.node(fam.mother);
+            if (!fatherNode || !motherNode) return;
+            
+            // Find the rank that contains both partners
+            const fatherRankKey = Math.round(fatherNode.y / 5) * 5;
+            const motherRankKey = Math.round(motherNode.y / 5) * 5;
+            
+            // They should be on the same rank
+            if (fatherRankKey !== motherRankKey) return;
+            
+            const rankNodes = rankGroups[fatherRankKey];
+            if (!rankNodes) return;
+            
+            const fatherIdx = rankNodes.indexOf(fam.father);
+            const motherIdx = rankNodes.indexOf(fam.mother);
+            
+            if (fatherIdx === -1 || motherIdx === -1) return;
+            
+            // Check if they are adjacent (allowing for the couple node between them)
+            const leftIdx = Math.min(fatherIdx, motherIdx);
+            const rightIdx = Math.max(fatherIdx, motherIdx);
+            
+            // Count non-family nodes between them
+            let nonFamilyNodesBetween = [];
+            for (let i = leftIdx + 1; i < rightIdx; i++) {
+                const betweenId = rankNodes[i];
+                // Skip couple/family nodes (they're invisible)
+                if (betweenId.startsWith("fam_") || betweenId.startsWith("hub_")) continue;
+                nonFamilyNodesBetween.push(betweenId);
+            }
+            
+            if (nonFamilyNodesBetween.length === 0) return; // Already adjacent
+            
+            console.log(`[CoupleAdjacency] Fixing couple ${fam.father} - ${fam.mother}: ${nonFamilyNodesBetween.length} nodes between them`);
+            
+            // Strategy: Move the intruding nodes out of the way
+            // Determine which partner is on the left and which is on the right
+            const leftPartner = rankNodes[leftIdx];
+            const rightPartner = rankNodes[rightIdx];
+            const leftPartnerNode = g.node(leftPartner);
+            const rightPartnerNode = g.node(rightPartner);
+            
+            // Calculate the desired position: partners should be adjacent with nodeSep gap
+            // The couple node should be between them
+            const coupleNode = g.node(fam.id);
+            const desiredGap = nodeSep; // Gap between partners
+            
+            // Keep the left partner in place, move the right partner next to it
+            const newRightX = leftPartnerNode.x + leftPartnerNode.width / 2 + desiredGap + rightPartnerNode.width / 2;
+            
+            // Calculate how much we need to shift
+            const shiftAmount = rightPartnerNode.x - newRightX;
+            
+            if (shiftAmount > 0) {
+                // Right partner needs to move left - shift it and push intruders to the right
+                rightPartnerNode.x = newRightX;
+                
+                // Place couple node between partners
+                if (coupleNode) {
+                    coupleNode.x = (leftPartnerNode.x + newRightX) / 2;
+                }
+                
+                // Move all intruding nodes to the right of the right partner
+                let currentX = newRightX + rightPartnerNode.width / 2 + desiredGap;
+                nonFamilyNodesBetween.forEach(nodeId => {
+                    const node = g.node(nodeId);
+                    node.x = currentX + node.width / 2;
+                    currentX = node.x + node.width / 2 + desiredGap;
+                });
+                
+                // Also shift any nodes that were originally to the right of the right partner
+                for (let i = rightIdx + 1; i < rankNodes.length; i++) {
+                    const nodeId = rankNodes[i];
+                    if (nonFamilyNodesBetween.includes(nodeId)) continue; // Already moved
+                    const node = g.node(nodeId);
+                    if (node.x < currentX + node.width / 2) {
+                        node.x = currentX + node.width / 2;
+                        currentX = node.x + node.width / 2 + desiredGap;
+                    } else {
+                        break; // No more overlap
+                    }
+                }
+            } else {
+                // Right partner is already close enough or needs to move right
+                // Just move intruders out
+                let currentX = rightPartnerNode.x + rightPartnerNode.width / 2 + desiredGap;
+                
+                // Place couple node between partners
+                if (coupleNode) {
+                    coupleNode.x = (leftPartnerNode.x + rightPartnerNode.x) / 2;
+                }
+                
+                // Move intruders to the right
+                nonFamilyNodesBetween.forEach(nodeId => {
+                    const node = g.node(nodeId);
+                    node.x = currentX + node.width / 2;
+                    currentX = node.x + node.width / 2 + desiredGap;
+                });
+                
+                // Shift remaining nodes if needed
+                for (let i = rightIdx + 1; i < rankNodes.length; i++) {
+                    const nodeId = rankNodes[i];
+                    if (nonFamilyNodesBetween.includes(nodeId)) continue;
+                    const node = g.node(nodeId);
+                    if (node.x < currentX + node.width / 2) {
+                        node.x = currentX + node.width / 2;
+                        currentX = node.x + node.width / 2 + desiredGap;
+                    } else {
+                        break;
+                    }
+                }
+            }
+            
+            // Also update the child hub position to be below the couple node
+            const childHubNode = g.node(`hub_${fam.id}`);
+            if (childHubNode && coupleNode) {
+                childHubNode.x = coupleNode.x;
+            }
+        });
+        
+        // After fixing positions, update the SVG node transforms
+        svgGroup.selectAll("g.node").each(function(v) {
+            const node = g.node(v);
+            if (node) {
+                d3.select(this).attr("transform", `translate(${node.x},${node.y})`);
+            }
+        });
+    })();
+
     // Post-processing: Override Edge Paths for strict orthogonal routing
-    // We need to handle different types of connections:
-    // 1. Parent -> Family Node (Marriage Line)
-    // 2. Family Node -> Child (Offspring Line)
+    // Edge types in the new structure:
+    // 1. Parent -> Couple Node (fam_*): Marriage/couple line
+    // 2. Couple Node (fam_*) -> Child Hub (hub_*): Vertical descent line
+    // 3. Child Hub (hub_*) -> Child: Sibling distribution lines
+    // 4. Single Parent -> Family Node (fam_*) -> Child: Old-style for single parents
     
     svgGroup.selectAll("g.edgePath path").attr("d", function(d) {
         const source = g.node(d.v);
         const target = g.node(d.w);
         
-        // Check if this is a connection to a family node (Parent -> Family)
-        // Family nodes start with "fam_"
-        const isToFamily = d.w.startsWith("fam_");
-        const isFromFamily = d.v.startsWith("fam_");
+        const isToCoupleNode = d.w.startsWith("fam_");
+        const isFromCoupleNode = d.v.startsWith("fam_");
+        const isToChildHub = d.w.startsWith("hub_");
+        const isFromChildHub = d.v.startsWith("hub_");
 
         const startX = source.x;
         const startY = source.y + (source.height / 2); // Bottom of source
         const endX = target.x;
         const endY = target.y - (target.height / 2); // Top of target
 
-        if (isToFamily) {
-            // Parent to Family Node (Marriage/Couple)
-            // Check if straight horizontal lines are enabled
+        if (isToCoupleNode && !d.v.startsWith("fam_") && !d.v.startsWith("hub_")) {
+            // === PARENT -> COUPLE NODE (Marriage/Couple Line) ===
+            // This draws the horizontal line connecting partners
+            const edgeData = g.edge(d.v, d.w);
+            
             if (window.coupleStraightLines) {
-                // Draw straight horizontal line from side of parent to family node horizontal position
-                // Then draw down to family node
-                const parentCenterY = source.y; // Center height of parent
-                const sideX = startX > endX ? source.x - (source.width / 2) : source.x + (source.width / 2);
+                // Straight horizontal line: from side of parent shape to couple node
+                const parentCenterY = source.y;
+                const sideX = startX > endX
+                    ? source.x - (source.width / 2)
+                    : source.x + (source.width / 2);
                 
-                // Horizontal line at parent's center, then down to family node
-                return `M ${startX} ${startY} L ${startX} ${parentCenterY} L ${endX} ${parentCenterY} L ${endX} ${endY}`;
+                // Horizontal line from side of parent to couple node x, then down
+                return `M ${sideX} ${parentCenterY} L ${endX} ${parentCenterY} L ${endX} ${endY}`;
             } else {
-                // Standard angular V-H-V pattern
+                // Angular V-H-V pattern (default)
                 const midY = (startY + endY) / 2;
                 return `M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
             }
         }
-        else if (isFromFamily) {
-            // Family Node to Child
-            // Family node is the "knot".
-            // We want: Family Node -> Down -> Horizontal -> Down -> Child
-            
-            // Simple V-H-V for now to ensure 90 degrees
+        else if (isFromCoupleNode && isToChildHub) {
+            // === COUPLE NODE -> CHILD HUB (Vertical descent) ===
+            // Simple vertical line from couple node down to child hub
+            return `M ${startX} ${startY} L ${endX} ${endY}`;
+        }
+        else if (isFromChildHub) {
+            // === CHILD HUB -> CHILD (Sibling distribution) ===
+            // Horizontal from hub, then vertical down to child
+            const midY = (startY + endY) / 2;
+            return `M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
+        }
+        else if (isFromCoupleNode && !isToChildHub) {
+            // === SINGLE PARENT FAMILY NODE -> CHILD (no child hub) ===
             const midY = (startY + endY) / 2;
             return `M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
         }
         
-        // Default fallback
+        // Default fallback - orthogonal routing
         const midY = (startY + endY) / 2;
         return `M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`;
     });
