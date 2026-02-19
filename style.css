@@ -1065,4 +1065,77 @@ td[contenteditable="true"]:focus {
     font-size: 0.875rem;
     color: var(--text-primary);
 }
+
+/* ===== Status Dropdown ===== */
+.status-dropdown-container {
+    position: relative;
+}
+
+.status-toggle-btn {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: left;
+    padding: 8px 12px;
+    gap: 8px;
+}
+
+.status-toggle-btn .status-summary-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.875rem;
+}
+
+.status-dropdown-arrow {
+    font-size: 0.65rem;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+    color: var(--text-secondary);
+}
+
+.status-dropdown-panel {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    padding: 6px;
+    z-index: 500;
+    display: none;
+    min-width: 220px;
+}
+
+.status-dropdown-panel.open {
+    display: block;
+}
+
+.status-checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    user-select: none;
+    transition: background-color 0.15s;
+}
+
+.status-checkbox-item:hover {
+    background-color: var(--bg-color);
+}
+
+.status-checkbox-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    flex-shrink: 0;
+    accent-color: var(--primary-color);
 }

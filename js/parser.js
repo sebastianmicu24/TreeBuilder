@@ -38,7 +38,8 @@ function parseCSV(text) {
         const row = parseCSVLine(lines[i]);
         if (row.length < 7) continue;
 
-        const [roleStr, id, sex, notes, dead, condition, geneticTesting, siblingOrder] = row;
+        const [roleStr, id, sex, notes, dead, condition, geneticTesting, siblingOrder,
+               infertile, noChildrenByChoice, wasAdopted] = row;
         
         // Parse conditions: split by comma if multiple conditions present
         let parsedCondition;
@@ -58,6 +59,9 @@ function parseCSV(text) {
             condition: parsedCondition, // Can be string or array of strings
             geneticTesting: geneticTesting === '1',
             siblingOrder: siblingOrder ? parseInt(siblingOrder) || 0 : 0,
+            infertile: infertile === '1',
+            noChildrenByChoice: noChildrenByChoice === '1',
+            wasAdopted: wasAdopted === '1',
             roleStr: roleStr // Store for second pass
         };
     }

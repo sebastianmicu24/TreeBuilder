@@ -127,6 +127,10 @@ function buildGraphData(individuals) {
                     notes: 'Auto-generated',
                     dead: false,
                     condition: 'None',
+                    geneticTesting: false,
+                    infertile: false,
+                    noChildrenByChoice: false,
+                    wasAdopted: false,
                     roleStr: 'Unknown'
                 };
             }

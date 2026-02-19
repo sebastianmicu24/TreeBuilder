@@ -483,8 +483,12 @@ async function renderGenogram(data) {
                 : '#fff';
             fillStyle = `fill: ${color}; stroke: #333; stroke-width: 2px;`;
         }
-        // Get settings or defaults
-        const nodeSize = window.genogramSettings ? parseInt(window.genogramSettings.nodeSize) : 40;
+            // Was Adopted: apply dashed stroke to the shape border
+            if (ind.wasAdopted) {
+                fillStyle += ' stroke-dasharray: 8,4;';
+            }
+            // Get settings or defaults
+            const nodeSize = window.genogramSettings ? parseInt(window.genogramSettings.nodeSize) : 40;
         
         g.setNode(ind.id, {
             label: '', // Empty label to show patterns clearly
@@ -500,7 +504,10 @@ async function renderGenogram(data) {
             idText: ind.id, // Store ID to display outside if needed
             value: ind.value, // Store the calculated value for reference
             condition: ind.condition, // Store condition for pattern application
-            geneticTesting: ind.geneticTesting // Store genetic testing flag
+            geneticTesting: ind.geneticTesting, // Store genetic testing flag
+            infertile: ind.infertile,
+            noChildrenByChoice: ind.noChildrenByChoice,
+            wasAdopted: ind.wasAdopted
         });
     });
 
@@ -1122,6 +1129,96 @@ async function renderGenogram(data) {
                 openEditModal(v);
             });
     });
+
+    // ==================== POST-LAYOUT: INFERTILE / NO CHILDREN BY CHOICE SYMBOLS ====================
+    // Drawn AFTER layout so absolute SVG positions are known.
+    // Infertile:          vertical line + double horizontal bar (thicker)
+    // No children choice: vertical line + single horizontal bar
+    // For couples: drawn at the couple midpoint. Drawn only once per couple.
+    {
+        const drawnFertilitySymbols = new Set();
+        const fertNodeSize = window.genogramSettings ? parseInt(window.genogramSettings.nodeSize) : 40;
+        const halfBarWidth = Math.max(fertNodeSize * 0.85, 20);
+        const fertLineLength = 34;
+        const doubleBarGap = 4.5;
+
+        sortedIndividuals.forEach(ind => {
+            if (!ind.infertile && !ind.noChildrenByChoice) return;
+
+            const node = g.node(ind.id);
+            if (!node) return;
+
+            const isInfertile = ind.infertile; // infertile takes priority over noChildrenByChoice
+
+            // Find if this person belongs to a couple family
+            const fam = families.find(f =>
+                (f.father === ind.id || f.mother === ind.id) && f.father && f.mother
+            );
+
+            let centerX, bottomY, symbolKey;
+
+            if (fam) {
+                symbolKey = fam.id;
+                if (drawnFertilitySymbols.has(symbolKey)) return;
+                drawnFertilitySymbols.add(symbolKey);
+
+                const fatherNode = g.node(fam.father);
+                const motherNode = g.node(fam.mother);
+                if (!fatherNode || !motherNode) return;
+
+                const coupleNode = g.node(fam.id);
+                centerX = coupleNode ? coupleNode.x : (fatherNode.x + motherNode.x) / 2;
+                // Use the couple node's Y position as start (it's the junction below the
+                // horizontal coupling line in both angular and straight modes).
+                // This keeps the symbol below the couple line and avoids overlap.
+                bottomY = coupleNode
+                    ? coupleNode.y
+                    : Math.max(
+                        fatherNode.y + fatherNode.height / 2,
+                        motherNode.y + motherNode.height / 2
+                    );
+            } else {
+                symbolKey = ind.id;
+                if (drawnFertilitySymbols.has(symbolKey)) return;
+                drawnFertilitySymbols.add(symbolKey);
+                centerX = node.x;
+                bottomY = node.y + node.height / 2;
+            }
+
+            const lineEndY = bottomY + fertLineLength;
+
+            // Vertical descent line
+            svgGroup.append("line")
+                .attr("x1", centerX)
+                .attr("y1", bottomY)
+                .attr("x2", centerX)
+                .attr("y2", lineEndY)
+                .style("stroke", "#000")
+                .style("stroke-width", "1.5px");
+
+            if (isInfertile) {
+                // Double horizontal bar (slightly thicker) — infertile symbol
+                [lineEndY - doubleBarGap, lineEndY + doubleBarGap].forEach(barY => {
+                    svgGroup.append("line")
+                        .attr("x1", centerX - halfBarWidth)
+                        .attr("y1", barY)
+                        .attr("x2", centerX + halfBarWidth)
+                        .attr("y2", barY)
+                        .style("stroke", "#000")
+                        .style("stroke-width", "2.5px");
+                });
+            } else {
+                // Single horizontal bar — no children by choice symbol
+                svgGroup.append("line")
+                    .attr("x1", centerX - halfBarWidth)
+                    .attr("y1", lineEndY)
+                    .attr("x2", centerX + halfBarWidth)
+                    .attr("y2", lineEndY)
+                    .style("stroke", "#000")
+                    .style("stroke-width", "2px");
+            }
+        });
+    }
 
     // Fix edge paths to be strictly orthogonal if dagre-d3 curve interpolation isn't enough
     // Dagre-D3 uses d3.curveBasis by default for edges. We overrode it above with curveStep/StepAfter/StepBefore

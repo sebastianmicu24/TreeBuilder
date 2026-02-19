@@ -11,6 +11,30 @@ function debounceUpdate() {
     }, 150); // Wait 150ms after last change before updating
 }
 
+// ===== Status Dropdown =====
+function toggleStatusDropdown(prefix) {
+    const panel = document.getElementById(prefix + 'StatusPanel');
+    const isOpen = panel.classList.contains('open');
+    // Close all dropdowns first
+    document.querySelectorAll('.status-dropdown-panel').forEach(p => p.classList.remove('open'));
+    // Toggle this one
+    if (!isOpen) panel.classList.add('open');
+}
+
+function updateStatusSummary(prefix) {
+    const statuses = [];
+    if (document.getElementById(prefix + 'Dead')?.checked) statuses.push('Dead');
+    if (document.getElementById(prefix + 'GeneticTesting')?.checked) statuses.push('Genetic Testing');
+    if (document.getElementById(prefix + 'Infertile')?.checked) statuses.push('Infertile');
+    if (document.getElementById(prefix + 'NoChildrenByChoice')?.checked) statuses.push('No Children');
+    if (document.getElementById(prefix + 'WasAdopted')?.checked) statuses.push('Adopted');
+
+    const summary = document.getElementById(prefix + 'StatusSummary');
+    if (summary) {
+        summary.textContent = statuses.length > 0 ? statuses.join(', ') : 'No special status';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Handle file upload
     const fileInput = document.getElementById('csvFile');
@@ -33,7 +57,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Handle Add Row
     document.getElementById('addRowBtn').addEventListener('click', function() {
-        addTableRow(['', '', '', '', '0', 'None', '0', '0']);
+        addTableRow(['', '', '', '', '0', 'None', '0', '0', '0', '0', '0']);
     });
 
     // Handle New Tree button
@@ -120,6 +144,33 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Status dropdown toggle buttons
+    document.getElementById('editStatusBtn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        toggleStatusDropdown('edit');
+    });
+
+    document.getElementById('addRelatedStatusBtn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        toggleStatusDropdown('addRelated');
+    });
+
+    // Status checkbox change handlers - update summary on change
+    ['Dead', 'GeneticTesting', 'Infertile', 'NoChildrenByChoice', 'WasAdopted'].forEach(field => {
+        const editEl = document.getElementById('edit' + field);
+        if (editEl) editEl.addEventListener('change', () => updateStatusSummary('edit'));
+
+        const addEl = document.getElementById('addRelated' + field);
+        if (addEl) addEl.addEventListener('change', () => updateStatusSummary('addRelated'));
+    });
+
+    // Close status dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.status-dropdown-container')) {
+            document.querySelectorAll('.status-dropdown-panel').forEach(p => p.classList.remove('open'));
+        }
+    });
+
     // Initialize settings and modes
     window.grayscaleMode = true; // Set grayscale as default
     document.getElementById('grayscaleMode').checked = true; // Update UI
@@ -145,17 +196,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!isResizing) return;
         
         // Calculate new width
-        // e.clientX is the mouse position
-        // We want to limit the width between min and max
         let newWidth = e.clientX;
         if (newWidth < 250) newWidth = 250;
         if (newWidth > 600) newWidth = 600;
         
         sidebar.style.width = newWidth + 'px';
-        
-        // Trigger graph resize/center if needed (optional, but good for responsiveness)
-        // Since the SVG is responsive (width: 100%), we might want to re-center the graph
-        // But doing it on every mousemove is expensive. Maybe on mouseup.
     });
 
     document.addEventListener('mouseup', function(e) {
@@ -201,17 +246,24 @@ function populateTable(individuals) {
             ind.dead ? '1' : '0',
             ind.condition,
             ind.geneticTesting ? '1' : '0',
-            ind.siblingOrder !== undefined ? String(ind.siblingOrder) : '0'
+            ind.siblingOrder !== undefined ? String(ind.siblingOrder) : '0',
+            ind.infertile ? '1' : '0',
+            ind.noChildrenByChoice ? '1' : '0',
+            ind.wasAdopted ? '1' : '0'
         ]);
     });
 }
 
 function addTableRow(data) {
+    // Ensure we always have 11 data columns (pad with '0' if needed)
+    const paddedData = data.slice();
+    while (paddedData.length < 11) paddedData.push('0');
+
     const tbody = document.querySelector('#dataTable tbody');
     const tr = document.createElement('tr');
     
     // Create cells - all editable
-    data.forEach((text, index) => {
+    paddedData.forEach((text, index) => {
         const td = document.createElement('td');
         td.contentEditable = true;
         td.textContent = text;
@@ -221,7 +273,7 @@ function addTableRow(data) {
     // Add delete button
     const actionTd = document.createElement('td');
     const deleteBtn = document.createElement('button');
-    deleteBtn.innerHTML = '&times;'; // Use HTML entity for multiplication sign (X)
+    deleteBtn.innerHTML = '&times;';
     deleteBtn.className = 'delete-btn';
     deleteBtn.title = 'Remove row';
     deleteBtn.onclick = function() {
@@ -318,18 +370,12 @@ function exportToPng() {
     legendHeight = yOffset;
 
     // Position legend above the graph
-    // We'll place the legend at (bbox.x, bbox.y - legendHeight - gap)
     const gap = 40;
     legendGroup.setAttribute("transform", `translate(${bbox.x}, ${bbox.y - legendHeight - gap})`);
 
     // --- Create Export SVG ---
     const exportSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     const padding = 40;
-    
-    // Calculate total bounds
-    // Top-left is now (bbox.x, bbox.y - legendHeight - gap)
-    // Bottom-right is (bbox.x + bbox.width, bbox.y + bbox.height)
-    // Width is max(bbox.width, legendWidth)
     
     const minX = bbox.x;
     const minY = bbox.y - legendHeight - gap;
@@ -368,7 +414,6 @@ function exportToPng() {
         context.fillStyle = '#ffffff';
         context.fillRect(0, 0, canvas.width, canvas.height);
         
-        // Draw image
         context.drawImage(image, 0, 0);
         
         const pngUrl = canvas.toDataURL('image/png');
@@ -381,6 +426,7 @@ function exportToPng() {
         document.body.removeChild(downloadLink);
     };
 }
+
 function getTableData() {
     const individuals = {};
     const rows = document.querySelectorAll('#dataTable tbody tr');
@@ -396,13 +442,15 @@ function getTableData() {
         const condition = cells[5].textContent.trim();
         const geneticTesting = cells[6].textContent.trim();
         const siblingOrder = cells[7].textContent.trim();
+        const infertile = cells[8]?.textContent.trim() || '0';
+        const noChildrenByChoice = cells[9]?.textContent.trim() || '0';
+        const wasAdopted = cells[10]?.textContent.trim() || '0';
 
         if (!id) return; // Skip empty rows
 
         // Parse conditions: split by comma if multiple conditions present
         let parsedCondition;
         if (condition && condition !== "None" && condition !== "") {
-            // Check if comma-separated
             const conditionList = condition.split(',').map(c => c.trim()).filter(c => c !== '' && c !== 'None');
             parsedCondition = conditionList.length > 1 ? conditionList : (conditionList[0] || "None");
         } else {
@@ -414,18 +462,22 @@ function getTableData() {
             sex: sex,
             notes: notes,
             dead: dead === '1',
-            condition: parsedCondition, // Can be string or array of strings
+            condition: parsedCondition,
             geneticTesting: geneticTesting === '1',
             siblingOrder: siblingOrder ? parseInt(siblingOrder) || 0 : 0,
+            infertile: infertile === '1',
+            noChildrenByChoice: noChildrenByChoice === '1',
+            wasAdopted: wasAdopted === '1',
             roleStr: roleStr
         };
     });
 
     return individuals;
 }
+
 function downloadCsv() {
     const rows = document.querySelectorAll('#dataTable tbody tr');
-    let csvContent = 'Role;Id;Sex;Notes;Dead;Condition;GeneticTesting;SiblingOrder\n';
+    let csvContent = 'Role;Id;Sex;Notes;Dead;Condition;GeneticTesting;SiblingOrder;Infertile;NoChildrenByChoice;WasAdopted\n';
     
     rows.forEach(row => {
         const cells = row.querySelectorAll('td');
@@ -439,19 +491,20 @@ function downloadCsv() {
         const condition = cells[5].textContent.trim();
         const geneticTesting = cells[6].textContent.trim();
         const siblingOrder = cells[7].textContent.trim();
+        const infertile = cells[8]?.textContent.trim() || '0';
+        const noChildrenByChoice = cells[9]?.textContent.trim() || '0';
+        const wasAdopted = cells[10]?.textContent.trim() || '0';
         
-        if (!id) return; // Skip empty rows
+        if (!id) return;
         
-        // Quote fields that might contain semicolons
         const quotedRole = roleStr.includes(';') ? `"${roleStr}"` : roleStr;
         const quotedId = `"${id}"`;
-        const quotedNotes = notes.includes(';') ? `"${notes}"` : `"${notes}"`;
+        const quotedNotes = `"${notes}"`;
         const quotedCondition = condition.includes(';') ? `"${condition}"` : condition;
         
-        csvContent += `${quotedRole};${quotedId};${sex};${quotedNotes};${dead};${quotedCondition};${geneticTesting};${siblingOrder}\n`;
+        csvContent += `${quotedRole};${quotedId};${sex};${quotedNotes};${dead};${quotedCondition};${geneticTesting};${siblingOrder};${infertile};${noChildrenByChoice};${wasAdopted}\n`;
     });
     
-    // Create blob and download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -463,6 +516,7 @@ function downloadCsv() {
     link.click();
     document.body.removeChild(link);
 }
+
 var currentEditingPerson = null;
 
 function openEditModal(personId) {
@@ -481,7 +535,10 @@ function openEditModal(personId) {
                 dead: cells[4].textContent.trim() === '1',
                 condition: cells[5].textContent.trim(),
                 geneticTesting: cells[6].textContent.trim() === '1',
-                siblingOrder: cells[7]?.textContent.trim() || '0'
+                siblingOrder: cells[7]?.textContent.trim() || '0',
+                infertile: cells[8]?.textContent.trim() === '1',
+                noChildrenByChoice: cells[9]?.textContent.trim() === '1',
+                wasAdopted: cells[10]?.textContent.trim() === '1'
             };
         }
     });
@@ -494,14 +551,22 @@ function openEditModal(personId) {
     document.getElementById('editNotes').value = personData.notes;
     document.getElementById('editDead').checked = personData.dead;
     document.getElementById('editGeneticTesting').checked = personData.geneticTesting;
+    document.getElementById('editInfertile').checked = personData.infertile;
+    document.getElementById('editNoChildrenByChoice').checked = personData.noChildrenByChoice;
+    document.getElementById('editWasAdopted').checked = personData.wasAdopted;
     document.getElementById('editCondition').value = personData.condition;
     document.getElementById('editSiblingOrder').value = personData.siblingOrder;
+    
+    // Update status summary button text
+    updateStatusSummary('edit');
     
     document.getElementById('editModal').classList.add('active');
 }
 
 function closeEditModal() {
     document.getElementById('editModal').classList.remove('active');
+    // Close any open status dropdown
+    document.querySelectorAll('.status-dropdown-panel').forEach(p => p.classList.remove('open'));
     currentEditingPerson = null;
 }
 
@@ -543,6 +608,9 @@ function savePersonEdit() {
             cells[5].textContent = document.getElementById('editCondition').value;
             cells[6].textContent = document.getElementById('editGeneticTesting').checked ? '1' : '0';
             cells[7].textContent = document.getElementById('editSiblingOrder').value || '0';
+            if (cells[8]) cells[8].textContent = document.getElementById('editInfertile').checked ? '1' : '0';
+            if (cells[9]) cells[9].textContent = document.getElementById('editNoChildrenByChoice').checked ? '1' : '0';
+            if (cells[10]) cells[10].textContent = document.getElementById('editWasAdopted').checked ? '1' : '0';
         }
         
         // Update role references if ID changed
@@ -560,6 +628,7 @@ function savePersonEdit() {
     closeEditModal();
     updateGraph();
 }
+
 var currentAddRelationType = null;
 var currentAddRelatedToPerson = null;
 
@@ -579,8 +648,14 @@ function addRelated(relationType) {
     document.getElementById('addRelatedNotes').value = '';
     document.getElementById('addRelatedDead').checked = false;
     document.getElementById('addRelatedGeneticTesting').checked = false;
+    document.getElementById('addRelatedInfertile').checked = false;
+    document.getElementById('addRelatedNoChildrenByChoice').checked = false;
+    document.getElementById('addRelatedWasAdopted').checked = false;
     document.getElementById('addRelatedCondition').value = 'None';
     document.getElementById('addRelatedSiblingOrder').value = '0';
+    
+    // Update status summary
+    updateStatusSummary('addRelated');
     
     // Open the modal
     document.getElementById('addRelatedModal').classList.add('active');
@@ -588,6 +663,8 @@ function addRelated(relationType) {
 
 function closeAddRelatedModal() {
     document.getElementById('addRelatedModal').classList.remove('active');
+    // Close any open status dropdown
+    document.querySelectorAll('.status-dropdown-panel').forEach(p => p.classList.remove('open'));
     currentAddRelationType = null;
     currentAddRelatedToPerson = null;
 }
@@ -604,6 +681,9 @@ function saveAddRelated() {
     const notes = document.getElementById('addRelatedNotes').value.trim() || '';
     const dead = document.getElementById('addRelatedDead').checked ? '1' : '0';
     const geneticTesting = document.getElementById('addRelatedGeneticTesting').checked ? '1' : '0';
+    const infertile = document.getElementById('addRelatedInfertile').checked ? '1' : '0';
+    const noChildrenByChoice = document.getElementById('addRelatedNoChildrenByChoice').checked ? '1' : '0';
+    const wasAdopted = document.getElementById('addRelatedWasAdopted').checked ? '1' : '0';
     const condition = document.getElementById('addRelatedCondition').value.trim() || 'None';
     const siblingOrder = document.getElementById('addRelatedSiblingOrder').value || '0';
     
@@ -623,7 +703,8 @@ function saveAddRelated() {
             break;
     }
     
-    addTableRow([roleStr, newId, sex, notes, dead, condition, geneticTesting, siblingOrder]);
+    addTableRow([roleStr, newId, sex, notes, dead, condition, geneticTesting, siblingOrder,
+                 infertile, noChildrenByChoice, wasAdopted]);
     closeAddRelatedModal();
     closeEditModal();
     updateGraph();
@@ -665,13 +746,13 @@ function wizardBuild() {
     const tbody = document.querySelector('#dataTable tbody');
     tbody.innerHTML = '';
     
-    // Always add Patient and Parents
+    // Always add Patient and Parents (addTableRow auto-pads to 11 columns)
     addTableRow(['Patient', 'Patient', patientSex, 'Proband', '0', 'None', '0', '0']);
     addTableRow(['Parent("Patient")', 'Father', 'M', 'Father', '0', 'None', '0', '0']);
     addTableRow(['Parent("Patient")', 'Mother', 'F', 'Mother', '0', 'None', '0', '0']);
     
     // Patient's siblings
-    let sibOrder = 2; // Patient is implicitly 1
+    let sibOrder = 2;
     for (let i = 1; i <= patientBrothers; i++) {
         const id = 'Brother' + i;
         addTableRow(['Sibling("Patient")', id, 'M', 'Brother ' + i, '0', 'None', '0', String(sibOrder++)]);
