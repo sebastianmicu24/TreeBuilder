@@ -5,6 +5,45 @@
 var currentData   = null;
 var updateTimeout = null;
 
+// ===== Office Add-in Initialization =====
+Office.onReady((info) => {
+    if (info.host === Office.HostType.Word) {
+        window.isWordHost = true;
+        // If DOM is already loaded, show the button
+        const wordGroup = document.getElementById('wordIntegrationGroup');
+        if (wordGroup) {
+            wordGroup.style.display = 'block';
+        }
+    }
+});
+
+function insertGenogramIntoWord() {
+    const insertBtn = document.getElementById('insertWordBtn');
+    const originalText = insertBtn.innerHTML;
+    insertBtn.innerHTML = 'Inserting...';
+    insertBtn.disabled = true;
+
+    exportPNG(function(pngUrl) {
+        const base64Image = pngUrl.split(',')[1];
+        
+        Word.run(function (context) {
+            const doc = context.document;
+            // Insert the image at the current selection
+            doc.getSelection().insertInlinePictureFromBase64(base64Image, Word.InsertLocation.replace);
+            
+            return context.sync().then(function () {
+                insertBtn.innerHTML = originalText;
+                insertBtn.disabled = false;
+            });
+        }).catch(function (error) {
+            console.error('Error inserting image: ' + error);
+            insertBtn.innerHTML = originalText;
+            insertBtn.disabled = false;
+            alert('Failed to insert image into Word document.');
+        });
+    });
+}
+
 // Debounce rapid slider changes (150 ms wait before redrawing)
 function debounceUpdate() {
     if (updateTimeout) clearTimeout(updateTimeout);
@@ -381,6 +420,18 @@ document.addEventListener('DOMContentLoaded', function() {
     if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', toggleMobileMenu);
     if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', toggleMobileMenu);
     if (mobileOverlay) mobileOverlay.addEventListener('click', toggleMobileMenu);
+
+    // --- Word Integration ---
+    if (window.isWordHost || (window.Office && window.Office.context && window.Office.context.requirements)) {
+        const wordGroup = document.getElementById('wordIntegrationGroup');
+        if (wordGroup) {
+            wordGroup.style.display = 'block';
+        }
+    }
+    const insertBtn = document.getElementById('insertWordBtn');
+    if (insertBtn) {
+        insertBtn.addEventListener('click', insertGenogramIntoWord);
+    }
 
     // --- Initialise Defaults ---
     window.grayscaleMode      = true;
