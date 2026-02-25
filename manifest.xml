@@ -6,7 +6,7 @@
   xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
   xsi:type="TaskPaneApp">
 
-  <Id>a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d</Id>
+  <Id>79986a61-bace-4b5d-8420-3b7861f5ea01</Id>
   <Version>1.0.0.0</Version>
   <ProviderName>Clinical Genogram</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
@@ -14,7 +14,7 @@
   <Description DefaultValue="Build and insert clinical genograms directly into your Word documents." />
   <IconUrl DefaultValue="https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/assets/icon-32.png" />
   <HighResolutionIconUrl DefaultValue="https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/assets/icon-64.png" />
-  <SupportUrl DefaultValue="https://www.contoso.com/help" />
+  <SupportUrl DefaultValue="https://www.sebastianmicu.com />
   <AppDomains>
     <AppDomain>https://sebastianmicu.com</AppDomain>
   </AppDomains>
