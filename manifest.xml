@@ -21,8 +21,8 @@
   <Hosts>
     <Host Name="Document" />
   </Hosts>
-  <DefaultSettings>
-    <SourceLocation DefaultValue="https://localhost:3000/index.html" />
-  </DefaultSettings>
+ <DefaultSettings>
+    <SourceLocation DefaultValue="https://sebastianmicu.com/index.html" />
+  </DefaultSettings>
   <Permissions>ReadWriteDocument</Permissions>
 </OfficeApp>
