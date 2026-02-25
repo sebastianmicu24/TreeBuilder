@@ -1,0 +1,118 @@
+/* Legend */
+.legend-overlay {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    background: white;
+    padding: 16px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    pointer-events: auto;
+    z-index: 5;
+    border: 1px solid var(--border-color);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    padding: 6px 8px;
+    border-radius: var(--radius-md);
+    transition: background-color 0.2s;
+    pointer-events: auto;
+}
+
+.legend-item:last-child {
+    margin-bottom: 0;
+}
+
+.legend-item[style*="cursor: pointer"]:hover {
+    background-color: var(--bg-color);
+}
+
+.legend-color {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    border: 1px solid rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Zoom Controls */
+.zoom-controls {
+    position: absolute;
+    bottom: 24px;
+    right: 24px;
+    background: white;
+    padding: 8px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 5;
+    border: 1px solid var(--border-color);
+}
+
+.zoom-btn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: var(--bg-color);
+    color: var(--text-primary);
+    font-size: 20px;
+    font-weight: bold;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.zoom-btn:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+.zoom-btn:active {
+    transform: scale(0.95);
+}
+
+.zoom-level {
+    font-size: 0.75rem;
+    text-align: center;
+    color: var(--text-secondary);
+    font-weight: 600;
+    padding: 4px;
+}
+
+/* Graph Styles */
+.node rect,
+.node circle,
+.node polygon,
+.node ellipse {
+    stroke: var(--text-primary);
+    stroke-width: 2px;
+    fill: white;
+    transition: all 0.3s ease;
+}
+
+.node text {
+    font-family: 'Inter', sans-serif;
+    fill: var(--text-primary);
+}
+
+.edgePath path {
+    stroke: var(--text-primary);
+    stroke-width: 1.5px;
+    fill: none;
+}
+
+.dead-marker {
+    stroke: var(--text-primary);
+    stroke-width: 2px;
+}

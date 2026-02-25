@@ -1,5 +1,6 @@
+// ===== CSV Import/Export =====
+
 function parseCSVLine(line) {
-    // Simple CSV parser that handles quoted fields containing delimiters
     const result = [];
     let current = '';
     let inQuote = false;
@@ -17,7 +18,6 @@ function parseCSVLine(line) {
     }
     result.push(current.trim());
     
-    // Remove surrounding quotes from fields
     return result.map(field => {
         if (field.startsWith('"') && field.endsWith('"')) {
             return field.substring(1, field.length - 1);
@@ -26,12 +26,10 @@ function parseCSVLine(line) {
     });
 }
 
-function parseCSV(text) {
+function importCSV(text) {
     const lines = text.trim().split('\n');
-    // Skip header
     const individuals = {};
     
-    // First pass: Create individuals map
     for (let i = 1; i < lines.length; i++) {
         if (!lines[i].trim()) continue;
         
@@ -41,10 +39,8 @@ function parseCSV(text) {
         const [roleStr, id, sex, notes, dead, condition, geneticTesting, siblingOrder,
                infertile, noChildrenByChoice, wasAdopted] = row;
         
-        // Parse conditions: split by comma if multiple conditions present
         let parsedCondition;
         if (condition && condition !== "None" && condition !== "") {
-            // Check if comma-separated
             const conditionList = condition.split(',').map(c => c.trim()).filter(c => c !== '' && c !== 'None');
             parsedCondition = conditionList.length > 1 ? conditionList : (conditionList[0] || "None");
         } else {
@@ -56,15 +52,44 @@ function parseCSV(text) {
             sex: sex,
             notes: notes,
             dead: dead === '1',
-            condition: parsedCondition, // Can be string or array of strings
+            condition: parsedCondition,
             geneticTesting: geneticTesting === '1',
             siblingOrder: siblingOrder ? parseInt(siblingOrder) || 0 : 0,
             infertile: infertile === '1',
             noChildrenByChoice: noChildrenByChoice === '1',
             wasAdopted: wasAdopted === '1',
-            roleStr: roleStr // Store for second pass
+            roleStr: roleStr
         };
     }
 
     return individuals;
+}
+
+function exportCSV(individuals) {
+    let csvContent = 'Role;Id;Sex;Notes;Dead;Condition;GeneticTesting;SiblingOrder;Infertile;NoChildrenByChoice;WasAdopted\n';
+
+    Object.values(individuals).forEach(ind => {
+        const roleStr            = ind.roleStr || '';
+        const id                 = ind.id || '';
+        const sex                = ind.sex || '';
+        const notes              = ind.notes || '';
+        const dead               = ind.dead ? '1' : '0';
+        const condition          = Array.isArray(ind.condition) ? ind.condition.join(',') : (ind.condition || 'None');
+        const geneticTesting     = ind.geneticTesting ? '1' : '0';
+        const siblingOrder       = ind.siblingOrder || '0';
+        const infertile          = ind.infertile ? '1' : '0';
+        const noChildrenByChoice = ind.noChildrenByChoice ? '1' : '0';
+        const wasAdopted         = ind.wasAdopted ? '1' : '0';
+
+        if (!id) return;
+
+        const quotedRole      = roleStr.includes(';')    ? `"${roleStr}"`    : roleStr;
+        const quotedId        = `"${id}"`;
+        const quotedNotes     = `"${notes}"`;
+        const quotedCondition = condition.includes(';')  ? `"${condition}"`  : condition;
+
+        csvContent += `${quotedRole};${quotedId};${sex};${quotedNotes};${dead};${quotedCondition};${geneticTesting};${siblingOrder};${infertile};${noChildrenByChoice};${wasAdopted}\n`;
+    });
+
+    return csvContent;
 }

@@ -5,68 +5,142 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clinical Genogram</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='20' r='8' fill='%232563eb'/><circle cx='30' cy='50' r='8' fill='%232563eb'/><circle cx='70' cy='50' r='8' fill='%232563eb'/><circle cx='20' cy='80' r='6' fill='%2364748b'/><circle cx='40' cy='80' r='6' fill='%2364748b'/><circle cx='60' cy='80' r='6' fill='%2364748b'/><circle cx='80' cy='80' r='6' fill='%2364748b'/><line x1='50' y1='28' x2='30' y2='42' stroke='%232563eb' stroke-width='2'/><line x1='50' y1='28' x2='70' y2='42' stroke='%232563eb' stroke-width='2'/><line x1='30' y1='58' x2='20' y2='74' stroke='%2364748b' stroke-width='2'/><line x1='30' y1='58' x2='40' y2='74' stroke='%2364748b' stroke-width='2'/><line x1='70' y1='58' x2='60' y2='74' stroke='%2364748b' stroke-width='2'/><line x1='70' y1='58' x2='80' y2='74' stroke='%2364748b' stroke-width='2'/></svg>">
-    <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/sidebar.css">
+    <link rel="stylesheet" href="css/controls.css">
+    <link rel="stylesheet" href="css/table.css">
+    <link rel="stylesheet" href="css/graph.css">
+    <link rel="stylesheet" href="css/modals.css">
+    <link rel="stylesheet" href="css/mobile.css">
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="https://dagrejs.github.io/project/dagre-d3/latest/dagre-d3.min.js"></script>
 </head>
 <body>
+    <div class="mobile-overlay" id="mobileOverlay"></div>
     <div class="app-container">
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h1>Clinical Genogram</h1>
+        <button class="mobile-menu-btn" id="mobileMenuBtn" title="Toggle Menu">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </button>
+        <aside class="sidebar collapsed" id="sidebar">
+            <div class="sidebar-nav">
+                <button class="hamburger-btn" id="toggleSidebarBtn" title="Toggle Menu">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                </button>
+                <div class="nav-items">
+                    <button class="nav-item active" data-target="panel-io" title="Input / Output">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        <span class="nav-label">Input / Output</span>
+                    </button>
+                    <button class="nav-item" data-target="panel-display" title="Display Options">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        <span class="nav-label">Display Options</span>
+                    </button>
+                    <button class="nav-item" data-target="panel-settings" title="Settings">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                        <span class="nav-label">Settings</span>
+                    </button>
+                    <button class="nav-item" data-target="panel-data" title="Data Editor">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                        <span class="nav-label">Data Editor</span>
+                    </button>
+                </div>
             </div>
             
-            <div class="sidebar-content">
-                <section class="panel">
-                    <div class="control-group" style="flex-direction: column; gap: 8px;">
-                        <button id="newTreeBtn" class="btn primary full-width" style="background-color: var(--primary-color); color: white; border: none; font-weight: 600;">New Tree</button>
+            <div class="sidebar-panels">
+                <div class="sidebar-header">
+                    <h1>Clinical Genogram</h1>
+                    <button class="mobile-menu-btn" id="closeSidebarBtn" style="display: none; position: static; border: none; box-shadow: none;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                
+                <div class="sidebar-content">
+                    <div class="control-group" style="flex-direction: column; gap: 8px; margin-bottom: 16px;">
+                        <button id="newTreeBtn" class="btn primary full-width">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            New Tree
+                        </button>
                     </div>
-                </section>
 
-                <section class="panel collapsible collapsed">
-                    <h2>Data Input</h2>
+                    <div id="panel-io" class="nav-panel active">
+                        <section class="panel">
+                            <h2>Import / Export</h2>
                     <div class="control-group">
-                        <label class="file-upload-btn">
-                            Upload CSV
-                            <input type="file" id="csvFile" accept=".csv">
-                        </label>
-                        <button id="downloadCsvBtn" class="btn secondary">Download CSV</button>
+                        <div class="io-group">
+                            <select id="importFormat" class="io-select">
+                                <option value="csv">CSV</option>
+                                <option value="json">JSON</option>
+                                <option value="gedcom">GEDCOM</option>
+                                <option value="fhir">HL7 FHIR</option>
+                                <option value="ped">PED</option>
+                            </select>
+                            <label class="file-upload-btn io-btn">
+                                Import
+                                <input type="file" id="importFile" accept=".csv,.json,.ged,.fhir,.ped,.txt">
+                            </label>
+                        </div>
                     </div>
                     <div class="control-group">
-                        <button id="exportBtn" class="btn secondary full-width">Export PNG</button>
+                        <div class="io-group">
+                            <select id="exportFormat" class="io-select">
+                                <option value="png">PNG Image</option>
+                                <option value="svg">SVG Vector</option>
+                                <option value="csv">CSV Data</option>
+                                <option value="json">JSON Data</option>
+                                <option value="gedcom">GEDCOM</option>
+                                <option value="fhir">HL7 FHIR</option>
+                                <option value="ped">PED</option>
+                            </select>
+                            <button id="exportBtn" class="btn secondary io-btn">Export</button>
+                        </div>
                     </div>
-                </section>
-<section class="panel collapsible collapsed">
-    <h2>Display Mode</h2>
-    <div class="control-group">
-        <label class="toggle-switch">
-            <span class="toggle-label-left">Colors</span>
-            <input type="checkbox" id="grayscaleMode">
-            <span class="toggle-slider"></span>
-            <span class="toggle-label-right">Grayscale</span>
-        </label>
-    </div>
-    <div class="display-options">
-        <label class="checkbox-label">
-            <span>Show:<br></span>
-            <input type="checkbox" id="showNames">
-            <span>Names</span>
-        </label>
-        <label class="checkbox-label">
-            <input type="checkbox" id="showNotes">
-            <span>Notes</span>
-        </label>
-        <label class="checkbox-label">
-            <input type="checkbox" id="showConditions" checked>
-            <span>Conditions</span>
-        </label>
-    </div>
-</section>
-                </section>
+                        </section>
+                    </div>
 
-                <section class="panel collapsible collapsed">
-                    <h2>Settings</h2>
+                    <div id="panel-display" class="nav-panel">
+                        <section class="panel">
+                            <h2>Display Mode</h2>
+                            <div class="display-toggles">
+                                <label class="toggle-switch toggle-row">
+                                    <input type="checkbox" id="grayscaleMode">
+                                    <span class="toggle-label-left">Colors</span>
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-label-right">Grayscale</span>
+                                </label>
+                                <label class="toggle-switch toggle-row">
+                                    <input type="checkbox" id="coupleLineStyle" checked>
+                                    <span class="toggle-label-left">Angular Lines</span>
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-label-right">Straight Lines</span>
+                                </label>
+                            </div>
+                            
+                            <div class="display-options-group">
+                                <h3>Show Elements</h3>
+                                <div class="checkbox-grid">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="showNames">
+                                        <span>Names</span>
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="showNotes">
+                                        <span>Notes</span>
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="showConditions" checked>
+                                        <span>Conditions</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <div id="panel-settings" class="nav-panel">
+                        <section class="panel">
+                            <h2>Settings</h2>
                     <div class="settings-grid">
                         <div class="setting-item">
                             <label>Node Size <span id="nodeSizeVal">40</span></label>
@@ -113,49 +187,25 @@
                             <label>Genetic Test Line Width <span id="geneticTestWidthVal">2</span>px</label>
                             <input type="range" id="geneticTestWidth" min="1" max="5" value="2">
                         </div>
-                        <div class="setting-item" style="grid-column: 1 / -1;">
-                            <label class="toggle-switch">
-                                <span class="toggle-label-left">Angular Lines</span>
-                                <input type="checkbox" id="coupleLineStyle">
-                                <span class="toggle-slider"></span>
-                                <span class="toggle-label-right">Straight Lines</span>
-                            </label>
-                            <small style="display: block; margin-top: 5px; color: #64748b;">Couple connection style</small>
-                        </div>
                     </div>
-                </section>
+                        </section>
+                    </div>
 
-                <section class="panel collapsible collapsed flex-grow">
-                    <div class="panel-header">
-                        <h2>Data Editor</h2>
+                    <div id="panel-data" class="nav-panel">
+                        <section class="panel">
+                            <h2>Data Editor</h2>
+                            <button id="openDataEditorBtn" class="btn secondary full-width">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                                Open Data Editor
+                            </button>
+                        </section>
                     </div>
-                    <div class="table-wrapper">
-                        <table id="dataTable">
-                            <thead>
-                                <tr>
-                                        <th>Role</th>
-                                        <th>Id</th>
-                                        <th>Sex</th>
-                                        <th>Notes</th>
-                                        <th>Dead</th>
-                                        <th>Condition</th>
-                                        <th>Gen.Test</th>
-                                        <th>Sib.</th>
-                                        <th>Infertile</th>
-                                        <th>No Ch.</th>
-                                        <th>Adopted</th>
-                                        <th></th>
-                                    </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Rows will be populated here -->
-                            </tbody>
-                        </table>
-                    </div>
-                    <button id="addRowBtn" class="btn full-width">+ Add Row</button>
-                </section>
-                
-                <button id="updateBtn" class="btn primary full-width">Update Graph</button>
+                    
+                    <button id="updateBtn" class="btn primary full-width" style="margin-top: auto;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                        Update Graph
+                    </button>
+                </div>
             </div>
         </aside>
         
@@ -368,6 +418,47 @@
                 </div>
             </div>
         </div>
+        <!-- Data Editor Modal -->
+        <div id="dataEditorModal" class="modal">
+            <div class="modal-content data-editor-modal">
+                <div class="modal-header">
+                    <h2>Data Editor</h2>
+                    <button class="modal-close" onclick="closeDataEditorModal()">&times;</button>
+                </div>
+                <div class="modal-body data-editor-body">
+                    <div class="table-wrapper">
+                        <table id="dataTable">
+                            <thead>
+                                <tr>
+                                    <th>Role</th>
+                                    <th>Id</th>
+                                    <th>Sex</th>
+                                    <th>Notes</th>
+                                    <th>Dead</th>
+                                    <th>Condition</th>
+                                    <th>Gen.Test</th>
+                                    <th>Sib.</th>
+                                    <th>Infertile</th>
+                                    <th>No Ch.</th>
+                                    <th>Adopted</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Rows will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="addRowBtn" class="btn secondary">+ Add Row</button>
+                    <div style="flex: 1;"></div>
+                    <button class="btn secondary" onclick="closeDataEditorModal()">Close</button>
+                    <button class="btn primary" onclick="saveDataEditor()">Apply Changes</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Setup Form Modal -->
         <div id="setupWizardModal" class="modal">
             <div class="modal-content setup-form-modal">
@@ -384,11 +475,11 @@
                         <div class="setup-fieldset-label">Generations</div>
                         <div class="setup-segmented-control">
                             <label class="setup-segment">
-                                <input type="radio" name="detailLevel" value="parents" checked>
+                                <input type="radio" name="detailLevel" value="parents">
                                 <span>Parents</span>
                             </label>
                             <label class="setup-segment">
-                                <input type="radio" name="detailLevel" value="grandparents">
+                                <input type="radio" name="detailLevel" value="grandparents" checked>
                                 <span>Grandparents</span>
                             </label>
                             <label class="setup-segment">
@@ -501,10 +592,27 @@
         </div>
     </div>
 
-    <script src="js/parser.js"></script>
+    <script src="js/io/csv.js"></script>
+    <script src="js/io/json.js"></script>
+    <script src="js/io/gedcom.js"></script>
+    <script src="js/io/fhir.js"></script>
+    <script src="js/io/ped.js"></script>
+    <script src="js/io/svg.js"></script>
+    <script src="js/io/png.js"></script>
+    <script src="js/io/index.js"></script>
     <script src="js/graph.js"></script>
     <script src="js/patterns.js"></script>
+    <!-- Renderer submodules (loaded before the orchestrator) -->
+    <script src="js/renderer/pickers.js"></script>
+    <script src="js/renderer/legend.js"></script>
+    <script src="js/renderer/svg-patterns.js"></script>
+    <script src="js/renderer/layout.js"></script>
+    <script src="js/renderer/node-decorations.js"></script>
     <script src="js/renderer.js"></script>
+    <!-- UI submodules (loaded before main) -->
+    <script src="js/ui/table.js"></script>
+    <script src="js/ui/modals.js"></script>
+    <script src="js/ui/wizard.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html>

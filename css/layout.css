@@ -1,0 +1,41 @@
+.app-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+}
+
+.main-content {
+    flex: 1;
+    position: relative;
+    background-color: #f1f5f9;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.canvas-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+}
+
+#genogram {
+    width: 100%;
+    height: 100%;
+}
+
+.resizer {
+    width: 5px;
+    background-color: transparent;
+    cursor: col-resize;
+    transition: background-color 0.2s;
+    z-index: 20;
+}
+
+.resizer:hover, .resizer.resizing {
+    background-color: var(--primary-color);
+}

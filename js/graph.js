@@ -84,8 +84,23 @@ function buildGraphData(individuals) {
             }
         }
 
-        // Find a family where parentId is a parent
-        let family = families.find(f => f.father === parentId || f.mother === parentId);
+        // Find a family where parentId is a parent.
+        // If this parent has MULTIPLE families (e.g. married + affair), we must pick
+        // the right one. Prefer a family whose OTHER parent slot is already filled by
+        // someone other than the child's current family — i.e. prefer the family that
+        // doesn't already have a DIFFERENT second parent set.
+        // As a practical heuristic, if the child is already in a (potentially wrong)
+        // existingFamily, look for a family for parentId that is DIFFERENT from it;
+        // otherwise just take the first one.
+        let candidateFamilies = families.filter(f => f.father === parentId || f.mother === parentId);
+        let family;
+        if (existingFamily && candidateFamilies.length > 1) {
+            // Prefer a family that is NOT the one the child is currently (wrongly) in
+            family = candidateFamilies.find(f => f !== existingFamily) || candidateFamilies[0];
+        } else {
+            family = candidateFamilies[0];
+        }
+
         if (!family) {
             // Create a partial family
             if (isFather) {
@@ -95,8 +110,17 @@ function buildGraphData(individuals) {
             }
             families.push(family);
         }
+
         if (!family.children.includes(childId)) {
             family.children.push(childId);
+        }
+
+        // KEY FIX: if the child was previously placed in a DIFFERENT family due to
+        // incomplete information (only one parent was known at that time), remove it
+        // from the wrong family now that we know the correct one.
+        // This handles both orderings of parent declarations in the CSV.
+        if (existingFamily && existingFamily !== family) {
+            existingFamily.children = existingFamily.children.filter(id => id !== childId);
         }
     };
 
