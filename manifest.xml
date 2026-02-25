@@ -14,7 +14,7 @@
   <Description DefaultValue="Build and insert clinical genograms directly into your Word documents." />
   <IconUrl DefaultValue="https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/assets/icon-32.png" />
   <HighResolutionIconUrl DefaultValue="https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/assets/icon-64.png" />
-  <SupportUrl DefaultValue="https://www.sebastianmicu.com />
+  <SupportUrl DefaultValue="https://www.sebastianmicu.com" />
   <AppDomains>
     <AppDomain>https://sebastianmicu.com</AppDomain>
   </AppDomains>
