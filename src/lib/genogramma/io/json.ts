@@ -7,7 +7,7 @@ import { checkSize, fail, type ImportResult } from "./common";
  * JSON nativo con `schemaVersion`: export e import senza perdita. È il
  * formato per passare il genogramma tra paziente e medico (solo file).
  */
-export const NATIVE_FORMAT = "sebastianmicu24.com/genogramma";
+export const NATIVE_FORMAT = "sebastianmicu.com/genogramma";
 
 export function exportNativeJson(ped: Pedigree): string {
   return JSON.stringify({ format: NATIVE_FORMAT, ...ped }, null, 2);

@@ -10,7 +10,7 @@ const description =
   "Disegna il genogramma (albero genealogico clinico) con la nomenclatura internazionale NSGC. Per medici, genetisti e famiglie, senza registrazione: i dati restano sul dispositivo.";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://sebastianmicu24.com"),
+  metadataBase: new URL("https://www.sebastianmicu.com"),
   title: { default: "TreeBuilder — Genogramma clinico NSGC", template: "%s · TreeBuilder" },
   description,
   applicationName: "TreeBuilder",

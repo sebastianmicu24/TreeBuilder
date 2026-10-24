@@ -115,7 +115,7 @@ export function exportFhir(ped: Pedigree): string {
     {
       resourceType: "Bundle",
       type: "collection",
-      meta: { tag: [{ system: "https://sebastianmicu24.com", code: "experimental", display: FHIR_IG_VERSION }] },
+      meta: { tag: [{ system: "https://www.sebastianmicu.com", code: "experimental", display: FHIR_IG_VERSION }] },
       entry: entries,
     },
     null,

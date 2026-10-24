@@ -1,7 +1,7 @@
 # TreeBuilder — clinical genogram (NSGC)
 
 Draws clinical pedigrees/genograms following the NSGC standardized nomenclature
-(2008, revised 2022, corrected 2025). Live at https://sebastianmicu24.com.
+(2008, revised 2022, corrected 2025). Live at https://www.sebastianmicu.com.
 
 - **Editor clinico** (`/medico`): quick wizard, per-member panel, conditions with
   HPO/ORPHA/OMIM/ICD codes, genetic tests (E notation), table, legend, metadata,
